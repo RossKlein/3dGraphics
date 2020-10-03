@@ -1,0 +1,34 @@
+<component name="libraryTable">
+  <library name="lwjgl-opengl">
+    <CLASSES>
+      <root url="jar://C:/winbin/lwjgl-opengl/lwjgl-assimp-natives-windows.jar!/" />
+      <root url="jar://C:/winbin/lwjgl-opengl/lwjgl-assimp.jar!/" />
+      <root url="jar://C:/winbin/lwjgl-opengl/lwjgl-glfw-natives-windows.jar!/" />
+      <root url="jar://C:/winbin/lwjgl-opengl/lwjgl-glfw.jar!/" />
+      <root url="jar://C:/winbin/lwjgl-opengl/lwjgl-natives-windows.jar!/" />
+      <root url="jar://C:/winbin/lwjgl-opengl/lwjgl-openal-natives-windows.jar!/" />
+      <root url="jar://C:/winbin/lwjgl-opengl/lwjgl-openal.jar!/" />
+      <root url="jar://C:/winbin/lwjgl-opengl/lwjgl-opengl-natives-windows.jar!/" />
+      <root url="jar://C:/winbin/lwjgl-opengl/lwjgl-opengl.jar!/" />
+      <root url="jar://C:/winbin/lwjgl-opengl/lwjgl-stb-natives-windows.jar!/" />
+      <root url="jar://C:/winbin/lwjgl-opengl/lwjgl-stb.jar!/" />
+      <root url="jar://C:/winbin/lwjgl-opengl/lwjgl.jar!/" />
+    </CLASSES>
+    <JAVADOC>
+      <root url="jar://C:/winbin/lwjgl-opengl/lwjgl-assimp-javadoc.jar!/" />
+      <root url="jar://C:/winbin/lwjgl-opengl/lwjgl-glfw-javadoc.jar!/" />
+      <root url="jar://C:/winbin/lwjgl-opengl/lwjgl-javadoc.jar!/" />
+      <root url="jar://C:/winbin/lwjgl-opengl/lwjgl-openal-javadoc.jar!/" />
+      <root url="jar://C:/winbin/lwjgl-opengl/lwjgl-opengl-javadoc.jar!/" />
+      <root url="jar://C:/winbin/lwjgl-opengl/lwjgl-stb-javadoc.jar!/" />
+    </JAVADOC>
+    <SOURCES>
+      <root url="jar://C:/winbin/lwjgl-opengl/lwjgl-assimp-sources.jar!/" />
+      <root url="jar://C:/winbin/lwjgl-opengl/lwjgl-glfw-sources.jar!/" />
+      <root url="jar://C:/winbin/lwjgl-opengl/lwjgl-openal-sources.jar!/" />
+      <root url="jar://C:/winbin/lwjgl-opengl/lwjgl-opengl-sources.jar!/" />
+      <root url="jar://C:/winbin/lwjgl-opengl/lwjgl-sources.jar!/" />
+      <root url="jar://C:/winbin/lwjgl-opengl/lwjgl-stb-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>
