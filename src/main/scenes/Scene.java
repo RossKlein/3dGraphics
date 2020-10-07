@@ -8,7 +8,7 @@ public abstract class Scene {
 
     private Enum<?> sceneId;
 
-    public Scene ( Enum<?> SceneId) {
+    public Scene ( Enum<?> sceneId) {
         this.sceneId = sceneId;
     }
 

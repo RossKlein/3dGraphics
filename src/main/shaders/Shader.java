@@ -32,6 +32,14 @@ public abstract class Shader {
 
     }
 
+    public void startShader() {
+        GL20.glUseProgram( programId);
+    }
+
+    public void stopShader() {
+        GL20.glUseProgram(0);
+
+    }
 
     private static int loadShader( String file, int type) {
         InputStream in = Shader.class.getResourceAsStream(file);
@@ -39,10 +47,10 @@ public abstract class Shader {
         try {
             BufferedReader reader = new BufferedReader( new InputStreamReader(in));
             String line;
-            while((line=reader.readLine())!=null) {
+            while( (line=reader.readLine()) != null) {
                 string.append(line + "//\n");
-                reader.close();
             }
+            reader.close();
         } catch (IOException e){
             System.err.println("Couldn't load vertex/fragment shader file " + file);
         }
@@ -56,5 +64,15 @@ public abstract class Shader {
 
         }
         return shaderId;
+    }
+
+    public void exit() {
+        stopShader();
+        GL20.glDetachShader(programId, vertexShaderId);
+        GL20.glDetachShader(programId, fragmentShaderId);
+        GL20.glDeleteShader(vertexShaderId);
+        GL20.glDeleteShader(fragmentShaderId);
+        GL20.glDeleteProgram(programId);
+
     }
 }
