@@ -21,24 +21,47 @@ public class TestScene extends Scene {
         ModelBuilder modelBuilder = new ModelBuilder();
 
         float[] vertices = new float[]{
-                -0.5f, 0.5f, 0f,
+                -0.5f,  0.5f, 0f,
                 -0.5f, -0.5f, 0f,
-                0.5f, -0.5f, 0f,
-                0.5f, 0.5f, 0f
+                 0.5f, -0.5f, 0f,
+                 0.5f,  0.5f, 0f,
+                 0f,      1f, 0f,
+                0f,      -1f, 0f,
+
+                -1f, 1f, 0f,
+                -1f, -1f, 0f,
+                1f, 1f, 0f,
+                1f, -1f, 0f
         };
         int[] indices = new int[] {
+                6, 7, 8,
+                7, 8, 9,
                 0, 1, 3,
-                3, 1, 2
+                1, 2, 3,
+                4, 0, 3,
+                1, 5, 2
+
         };
 
         float[] colors = new float[] {
+                0, 0, 1, 1,
                 1, 0, 0, 1,
-                1, 0, 0, 0.1f,
-                0, 1, 0, 0.1f,
-                0, 1, 0, 1
+                0, 0, 1, 1,
+                1, 1, 0, 1,
+                0.5f, 0.2f, 0.3f, 1,
+                0.5f, 0.2f, 0.3f, 1,
+
+                0, 0, 0, 1,
+                0, 0, 0, 1,
+                0, 0, 0, 1,
+                0, 0, 0, 1
+
+
 
         };
+
         model = modelBuilder.buildModel(vertices, indices, colors);
+
     }
 
     @Override
@@ -50,6 +73,7 @@ public class TestScene extends Scene {
     public void render(MasterRenderer renderer) {
 
         renderer.renderModel(model);
+
 
     }
 }

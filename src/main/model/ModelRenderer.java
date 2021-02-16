@@ -10,6 +10,7 @@ public class ModelRenderer {
     }
 
     public void render( Model model) {
+
         bindModel(model);
         renderModel(model);
         unbindModel(model);
@@ -22,7 +23,6 @@ public class ModelRenderer {
     }
     private void renderModel(Model model) {
         GL11.glDrawElements( GL11.GL_TRIANGLES, model.getVertexCount(), GL11.GL_UNSIGNED_INT, 0);
-
     }
 
     private void unbindModel(Model model) {

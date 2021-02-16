@@ -49,6 +49,7 @@ public class SceneHandler {
     public void initializeRegisteredScenes(ResourceLoader resourceLoader) {
         for( Scene scene : registeredScenes.values()) {
             scene.initialize(resourceLoader);
+
         }
     }
 
@@ -69,6 +70,7 @@ public class SceneHandler {
         activeScene = null;
         for( Scene scene : registeredScenes.values()) {
             scene.exit();
+            System.out.println("exited");
         }
         registeredScenes.clear();
     }

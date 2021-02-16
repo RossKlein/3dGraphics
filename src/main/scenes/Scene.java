@@ -19,16 +19,21 @@ public abstract class Scene {
     public abstract void render (MasterRenderer renderer);
 
     public void enter() {
-
+        System.out.println("entering " + sceneId);
     }
     public void leave() {
+        System.out.println("leaving " + sceneId);
+
 
     }
     public void exit() {
+        System.out.println("exiting " + sceneId);
+
 
     }
 
     public Enum<?> getSceneId() {
         return sceneId;
+
     }
 }

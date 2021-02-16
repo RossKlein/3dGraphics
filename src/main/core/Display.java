@@ -4,6 +4,10 @@ import org.lwjgl.glfw.GLFW;
 import org.lwjgl.glfw.GLFWVidMode;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GL11;
+import org.lwjgl.opengl.GLUtil;
+import org.lwjgl.system.Callback;
+
+import static org.lwjgl.glfw.GLFW.*;
 
 
 public class Display {
@@ -18,14 +22,14 @@ public class Display {
 
     public Display() {
         windowId = 0;
-        title = "";
+        title = "not working";
         x = -1;
         y = -1;
         w = 1;
         h = 0;
-        resizable = GLFW.GLFW_FALSE;
+        resizable = GLFW_TRUE;
         fullscreen = 0;
-        vSync = GLFW.GLFW_TRUE;
+        vSync = GLFW_TRUE;
     }
 
     public long getWindowId() {
@@ -104,7 +108,7 @@ public class Display {
     }
 
     public boolean getFullscreen() {
-        return fullscreen == GLFW.GLFW_TRUE;
+        return fullscreen == GLFW_TRUE;
     }
 
     public void setFullscreen(boolean fullscreen) {
@@ -119,12 +123,12 @@ public class Display {
     }
 
     public boolean getVSync() {
-        return vSync == GLFW.GLFW_TRUE;
+        return vSync == GLFW_TRUE;
     }
 
     public void setvSync(boolean vSync) {
         if (vSync) {
-            this.vSync = GLFW.GLFW_TRUE;
+            this.vSync = GLFW_TRUE;
         } else {
             this.vSync = GLFW.GLFW_FALSE;
         }
@@ -159,12 +163,13 @@ public class Display {
         }
 
         GLFW.glfwDefaultWindowHints();
-        GLFW.glfwWindowHint(GLFW.GLFW_VISIBLE, GLFW.GLFW_FALSE);
-        GLFW.glfwWindowHint(GLFW.GLFW_RESIZABLE, resizable);
-        GLFW.glfwWindowHint(GLFW.GLFW_CONTEXT_VERSION_MAJOR, 4);
-        GLFW.glfwWindowHint(GLFW.GLFW_CONTEXT_VERSION_MINOR, 4);
-        GLFW.glfwWindowHint(GLFW.GLFW_OPENGL_PROFILE, GLFW.GLFW_OPENGL_CORE_PROFILE);
-        GLFW.glfwWindowHint(GLFW.GLFW_OPENGL_FORWARD_COMPAT, GLFW.GLFW_TRUE);
+        glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GLFW_TRUE);
+        glfwWindowHint(GLFW.GLFW_VISIBLE, GLFW.GLFW_FALSE);
+        glfwWindowHint(GLFW.GLFW_RESIZABLE, resizable);
+        glfwWindowHint(GLFW.GLFW_CONTEXT_VERSION_MAJOR, 3);
+        glfwWindowHint(GLFW.GLFW_CONTEXT_VERSION_MINOR, 3);
+        glfwWindowHint(GLFW.GLFW_OPENGL_PROFILE, GLFW.GLFW_OPENGL_CORE_PROFILE);
+        glfwWindowHint(GLFW.GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);
 
         if( x == -1&&y == -1) {
             GLFWVidMode vidMode = GLFW.glfwGetVideoMode( GLFW.glfwGetPrimaryMonitor());
@@ -172,13 +177,21 @@ public class Display {
             this.y = (vidMode.height() - h) / 2;
         }
 
-        windowId = GLFW.glfwCreateWindow(w, h, title, 0, sharedWindow);
+        windowId = GLFW.glfwCreateWindow(w, h, title, fullscreen, sharedWindow);
+        if(windowId == 0){
+            throw new IllegalStateException( "failed to create display");
+        }
+
         GLFW.glfwSetWindowPos(windowId, x, y);
         GLFW.glfwMakeContextCurrent(windowId);
         GLFW.glfwSwapInterval(vSync);
         GL.createCapabilities();
 
+        Callback debugProc = GLUtil.setupDebugMessageCallback();
+
         GL11.glClearColor(1f, 1f, 1f, 1f);
+        GL11.glEnable(GL11.GL_BLEND);
+        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
     }
 
     public void update() {

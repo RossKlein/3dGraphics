@@ -71,6 +71,7 @@ public class Engine {
                 sceneHandler.updateActiveScene( deltaTime, inputHandler);
                 sleep( sleepTime);
             }
+
         };
     }
     private void renderLoop() {
@@ -83,6 +84,7 @@ public class Engine {
             run = !display.isClosed();
         }
         stop();
+        exit();
     }
     private void sleep(long time) {
         if(time<=0) {

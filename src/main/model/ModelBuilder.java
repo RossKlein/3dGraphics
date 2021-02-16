@@ -24,7 +24,9 @@ public class ModelBuilder {
         int vaoId = createVao();
         GL30.glBindVertexArray( vaoId);
 
+
         bindIndices( indices);
+
         storeDataInAttributeList(0,3,vertices);
         storeDataInAttributeList(1,4,colors);
 
@@ -33,11 +35,11 @@ public class ModelBuilder {
 
     }
     private void bindIndices(int[] indices){
-
         int vboId = createVbo();
-        GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, vboId);
+        GL15.glBindBuffer(GL15.GL_ELEMENT_ARRAY_BUFFER, vboId);
 
         IntBuffer buffer = BufferUtils.createIntBuffer(indices.length);
+
         buffer.put(indices);
         buffer.flip();
         GL15.glBufferData(GL15.GL_ELEMENT_ARRAY_BUFFER, buffer, GL15.GL_STATIC_DRAW);

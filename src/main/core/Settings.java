@@ -2,8 +2,7 @@ package main.core;
 
 public class Settings  {
 
-    static double maxTPS;
-
+    static double maxTPS = 100;
     private Settings() {
 
     }

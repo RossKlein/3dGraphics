@@ -18,13 +18,17 @@ public class Model {
         return vaoId;
     }
     public int getVertexCount() {
+
         return vertexCount;
     }
     public void bind() {
+
         GL30.glBindVertexArray( vaoId);
+
     }
     public void unbind() {
+
         GL30.glBindVertexArray( vaoId);
     }
-    /////////////// 0:32 in the video part 2 https://www.youtube.com/watch?v=Y5PeIqUsztg&list=PLdG8a-MTV23I2Eej26Jh3y2oReczryXs7&index=2
+
 }
