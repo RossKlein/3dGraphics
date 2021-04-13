@@ -1,9 +1,25 @@
 package main.core;
 
+import textures.Texture;
+import textures.TextureLoader;
+
 public class ResourceLoader {
 
-    public void exit() {
+    private TextureLoader textureLoader;
 
+    public ResourceLoader() {
+
+        textureLoader = new TextureLoader();
+
+    }
+
+    public Texture loadTexture(String filepath) {
+        return textureLoader.loadTexture(filepath);
+    }
+
+
+    public void exit() {
+        textureLoader.exit();
 
     }
 

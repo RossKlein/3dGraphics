@@ -3,6 +3,7 @@ package main.scenes;
 import main.core.MasterRenderer;
 import main.core.ResourceLoader;
 import main.input.InputHandler;
+import main.shaders.Shader;
 
 public class SplashScreen extends Scene {
 

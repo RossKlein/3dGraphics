@@ -52,7 +52,6 @@ public class SceneHandler {
 
         }
     }
-
     public void updateActiveScene(double deltaTime, InputHandler inputHandler){
         if(activeScene != null){
             activeScene.update( deltaTime, inputHandler);

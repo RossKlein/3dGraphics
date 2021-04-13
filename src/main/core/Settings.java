@@ -2,7 +2,10 @@ package main.core;
 
 public class Settings  {
 
-    static double maxTPS = 100;
+    static double maxTPS;
+    public static int width = 1720;
+    public static int height = 1000;
+    public static boolean wireframe = true;
     private Settings() {
 
     }

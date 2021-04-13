@@ -122,7 +122,7 @@ public class Display {
         }
     }
 
-    public boolean getVSync() {
+    public boolean getvSync() {
         return vSync == GLFW_TRUE;
     }
 
@@ -166,8 +166,8 @@ public class Display {
         glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GLFW_TRUE);
         glfwWindowHint(GLFW.GLFW_VISIBLE, GLFW.GLFW_FALSE);
         glfwWindowHint(GLFW.GLFW_RESIZABLE, resizable);
-        glfwWindowHint(GLFW.GLFW_CONTEXT_VERSION_MAJOR, 3);
-        glfwWindowHint(GLFW.GLFW_CONTEXT_VERSION_MINOR, 3);
+        glfwWindowHint(GLFW.GLFW_CONTEXT_VERSION_MAJOR, 4);
+        glfwWindowHint(GLFW.GLFW_CONTEXT_VERSION_MINOR, 1);
         glfwWindowHint(GLFW.GLFW_OPENGL_PROFILE, GLFW.GLFW_OPENGL_CORE_PROFILE);
         glfwWindowHint(GLFW.GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);
 
@@ -192,11 +192,18 @@ public class Display {
         GL11.glClearColor(1f, 1f, 1f, 1f);
         GL11.glEnable(GL11.GL_BLEND);
         GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+
+        GL11.glEnable(GL11.GL_DEPTH_TEST);
+        GL11.glDepthFunc(GL11.GL_LESS);
+        //GL11.glEnable(GL11.GL_CULL_FACE);
+        //GL11.glCullFace(GL11.GL_BACK);
+
     }
 
     public void update() {
         GLFW.glfwPollEvents();
         GLFW.glfwSwapBuffers(windowId);
+
         GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT);
 
     }

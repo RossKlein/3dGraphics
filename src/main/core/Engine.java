@@ -2,6 +2,7 @@ package main.core;
 
 import main.input.InputHandler;
 import main.scenes.SceneHandler;
+import org.lwjgl.glfw.GLFW;
 
 public class Engine {
 
@@ -27,6 +28,7 @@ public class Engine {
     public static InputHandler getInputHandler() {
         return inputHandler;
     }
+
 
     public void start() {
         display.create(0);
