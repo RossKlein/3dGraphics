@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch4jConfig>
+  <dontWrapJar>false</dontWrapJar>
+  <headerType>gui</headerType>
+  <jar>C:\Users\Raza\code\Java\3dGraphics\dist\Wireframe.jar</jar>
+  <outfile>C:\Users\Raza\code\Java\3dGraphics\dist\wireframe.exe</outfile>
+  <errTitle></errTitle>
+  <cmdLine></cmdLine>
+  <chdir></chdir>
+  <priority>normal</priority>
+  <downloadUrl></downloadUrl>
+  <supportUrl></supportUrl>
+  <stayAlive>false</stayAlive>
+  <restartOnCrash>false</restartOnCrash>
+  <manifest></manifest>
+  <icon></icon>
+  <singleInstance>
+    <mutexName>Wireframe</mutexName>
+    <windowTitle>Wireframe</windowTitle>
+  </singleInstance>
+  <classPath>
+    <mainClass>test.TestMain</mainClass>
+    <cp>C:/winbin/lwjgl-opengl/lwjgl</cp>
+    <cp>C:/winbin/lwjgl-opengl/lwjgl-stb.jar</cp>
+    <cp>C:/winbin/lwjgl-opengl/lwjgl-stb-natives-windows.jar</cp>
+    <cp>C:/winbin/lwjgl-opengl/lwjgl-opengl.jar</cp>
+    <cp>C:/winbin/lwjgl-opengl/lwjgl-opengl-natives-windows.jar</cp>
+    <cp>C:/winbin/lwjgl-opengl/lwjgl-openal.jar</cp>
+    <cp>C:/winbin/lwjgl-opengl/lwjgl-openal-natives-windows.jar</cp>
+    <cp>C:/winbin/lwjgl-opengl/lwjgl-natives-windows.jar</cp>
+    <cp>C:/winbin/lwjgl-opengl/lwjgl-glfw.jar</cp>
+    <cp>C:/winbin/lwjgl-opengl/lwjgl-glfw-natives-windows.jar</cp>
+    <cp>C:/winbin/lwjgl-opengl/lwjgl-assimp.jar</cp>
+    <cp>C:/winbin/lwjgl-opengl/lwjgl-assimp-natives-windows.jar</cp>
+  </classPath>
+  <jre>
+    <path>C:\Program Files\Java\jdk-13.0.2</path>
+    <bundledJre64Bit>false</bundledJre64Bit>
+    <bundledJreAsFallback>true</bundledJreAsFallback>
+    <minVersion>10.0.1</minVersion>
+    <maxVersion>13.0.2</maxVersion>
+    <jdkPreference>preferJre</jdkPreference>
+    <runtimeBits>64/32</runtimeBits>
+  </jre>
+</launch4jConfig>

@@ -1,0 +1,313 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="3dgraphics" default="all" xmlns:ivy="antlib:org.apache.ivy.ant">
+
+
+  <property file="3dgraphics.properties"/>
+  <!-- Uncomment the following property if no tests compilation is needed -->
+  <!--
+  <property name="skip.tests" value="true"/>
+   -->
+
+  <!-- Compiler options -->
+  <property name="src" location="src" />
+  <property name="build" location="out" />
+  <property name="dist" location="." />
+
+  <property name="compiler.debug" value="on"/>
+  <property name="compiler.generate.no.warnings" value="off"/>
+  <property name="compiler.args" value=""/>
+  <property name="compiler.max.memory" value="700m"/>
+  <patternset id="ignored.files">
+    <exclude name="**/*.hprof/**"/>
+    <exclude name="**/*.pyc/**"/>
+    <exclude name="**/*.pyo/**"/>
+    <exclude name="**/*.rbc/**"/>
+    <exclude name="**/*.yarb/**"/>
+    <exclude name="**/*~/**"/>
+    <exclude name="**/.DS_Store/**"/>
+    <exclude name="**/.git/**"/>
+    <exclude name="**/.hg/**"/>
+    <exclude name="**/.svn/**"/>
+    <exclude name="**/CVS/**"/>
+    <exclude name="**/__pycache__/**"/>
+    <exclude name="**/_svn/**"/>
+    <exclude name="**/vssver.scc/**"/>
+    <exclude name="**/vssver2.scc/**"/>
+  </patternset>
+  <patternset id="library.patterns">
+    <include name="*.war"/>
+    <include name="*.swc"/>
+    <include name="*.zip"/>
+    <include name="*.egg"/>
+    <include name="*.ane"/>
+    <include name="*.jar"/>
+    <include name="*.ear"/>
+    <include name="*.klib"/>
+  </patternset>
+  <patternset id="compiler.resources">
+    <exclude name="**/?*.java"/>
+    <exclude name="**/?*.form"/>
+    <exclude name="**/?*.class"/>
+    <exclude name="**/?*.groovy"/>
+    <exclude name="**/?*.scala"/>
+    <exclude name="**/?*.flex"/>
+    <exclude name="**/?*.kt"/>
+    <exclude name="**/?*.clj"/>
+    <exclude name="**/?*.aj"/>
+  </patternset>
+
+  <!-- JDK definitions -->
+
+  <property name="jdk.bin.13.0.2" value="${jdk.home.13.0.2}/bin"/>
+  <path id="jdk.classpath.13.0.2">
+    <fileset dir="${jdk.home.13.0.2}">
+      <include name="../jdk-13.0.2!/java.base"/>
+      <include name="../jdk-13.0.2!/java.compiler"/>
+      <include name="../jdk-13.0.2!/java.datatransfer"/>
+      <include name="../jdk-13.0.2!/java.desktop"/>
+      <include name="../jdk-13.0.2!/java.instrument"/>
+      <include name="../jdk-13.0.2!/java.logging"/>
+      <include name="../jdk-13.0.2!/java.management"/>
+      <include name="../jdk-13.0.2!/java.management.rmi"/>
+      <include name="../jdk-13.0.2!/java.naming"/>
+      <include name="../jdk-13.0.2!/java.net.http"/>
+      <include name="../jdk-13.0.2!/java.prefs"/>
+      <include name="../jdk-13.0.2!/java.rmi"/>
+      <include name="../jdk-13.0.2!/java.scripting"/>
+      <include name="../jdk-13.0.2!/java.se"/>
+      <include name="../jdk-13.0.2!/java.security.jgss"/>
+      <include name="../jdk-13.0.2!/java.security.sasl"/>
+      <include name="../jdk-13.0.2!/java.smartcardio"/>
+      <include name="../jdk-13.0.2!/java.sql"/>
+      <include name="../jdk-13.0.2!/java.sql.rowset"/>
+      <include name="../jdk-13.0.2!/java.transaction.xa"/>
+      <include name="../jdk-13.0.2!/java.xml"/>
+      <include name="../jdk-13.0.2!/java.xml.crypto"/>
+      <include name="../jdk-13.0.2!/jdk.accessibility"/>
+      <include name="../jdk-13.0.2!/jdk.aot"/>
+      <include name="../jdk-13.0.2!/jdk.attach"/>
+      <include name="../jdk-13.0.2!/jdk.charsets"/>
+      <include name="../jdk-13.0.2!/jdk.compiler"/>
+      <include name="../jdk-13.0.2!/jdk.crypto.cryptoki"/>
+      <include name="../jdk-13.0.2!/jdk.crypto.ec"/>
+      <include name="../jdk-13.0.2!/jdk.crypto.mscapi"/>
+      <include name="../jdk-13.0.2!/jdk.dynalink"/>
+      <include name="../jdk-13.0.2!/jdk.editpad"/>
+      <include name="../jdk-13.0.2!/jdk.hotspot.agent"/>
+      <include name="../jdk-13.0.2!/jdk.httpserver"/>
+      <include name="../jdk-13.0.2!/jdk.internal.ed"/>
+      <include name="../jdk-13.0.2!/jdk.internal.jvmstat"/>
+      <include name="../jdk-13.0.2!/jdk.internal.le"/>
+      <include name="../jdk-13.0.2!/jdk.internal.opt"/>
+      <include name="../jdk-13.0.2!/jdk.internal.vm.ci"/>
+      <include name="../jdk-13.0.2!/jdk.internal.vm.compiler"/>
+      <include name="../jdk-13.0.2!/jdk.internal.vm.compiler.management"/>
+      <include name="../jdk-13.0.2!/jdk.jartool"/>
+      <include name="../jdk-13.0.2!/jdk.javadoc"/>
+      <include name="../jdk-13.0.2!/jdk.jcmd"/>
+      <include name="../jdk-13.0.2!/jdk.jconsole"/>
+      <include name="../jdk-13.0.2!/jdk.jdeps"/>
+      <include name="../jdk-13.0.2!/jdk.jdi"/>
+      <include name="../jdk-13.0.2!/jdk.jdwp.agent"/>
+      <include name="../jdk-13.0.2!/jdk.jfr"/>
+      <include name="../jdk-13.0.2!/jdk.jlink"/>
+      <include name="../jdk-13.0.2!/jdk.jshell"/>
+      <include name="../jdk-13.0.2!/jdk.jsobject"/>
+      <include name="../jdk-13.0.2!/jdk.jstatd"/>
+      <include name="../jdk-13.0.2!/jdk.localedata"/>
+      <include name="../jdk-13.0.2!/jdk.management"/>
+      <include name="../jdk-13.0.2!/jdk.management.agent"/>
+      <include name="../jdk-13.0.2!/jdk.management.jfr"/>
+      <include name="../jdk-13.0.2!/jdk.naming.dns"/>
+      <include name="../jdk-13.0.2!/jdk.naming.rmi"/>
+      <include name="../jdk-13.0.2!/jdk.net"/>
+      <include name="../jdk-13.0.2!/jdk.pack"/>
+      <include name="../jdk-13.0.2!/jdk.rmic"/>
+      <include name="../jdk-13.0.2!/jdk.scripting.nashorn"/>
+      <include name="../jdk-13.0.2!/jdk.scripting.nashorn.shell"/>
+      <include name="../jdk-13.0.2!/jdk.sctp"/>
+      <include name="../jdk-13.0.2!/jdk.security.auth"/>
+      <include name="../jdk-13.0.2!/jdk.security.jgss"/>
+      <include name="../jdk-13.0.2!/jdk.unsupported"/>
+      <include name="../jdk-13.0.2!/jdk.unsupported.desktop"/>
+      <include name="../jdk-13.0.2!/jdk.xml.dom"/>
+      <include name="../jdk-13.0.2!/jdk.zipfs"/>
+    </fileset>
+  </path>
+
+  <property name="project.jdk.home" value="${jdk.home.13.0.2}"/>
+  <property name="project.jdk.bin" value="${jdk.bin.13.0.2}"/>
+  <property name="project.jdk.classpath" value="jdk.classpath.13.0.2"/>
+
+
+  <!-- Project Libraries -->
+
+  <path id="library.lwjgl-opengl.classpath">
+    <pathelement location="${basedir}/../../../../../winbin/lwjgl-opengl/lwjgl-assimp-natives-windows.jar"/>
+    <pathelement location="${basedir}/../../../../../winbin/lwjgl-opengl/lwjgl-assimp.jar"/>
+    <pathelement location="${basedir}/../../../../../winbin/lwjgl-opengl/lwjgl-glfw-natives-windows.jar"/>
+    <pathelement location="${basedir}/../../../../../winbin/lwjgl-opengl/lwjgl-glfw.jar"/>
+    <pathelement location="${basedir}/../../../../../winbin/lwjgl-opengl/lwjgl-natives-windows.jar"/>
+    <pathelement location="${basedir}/../../../../../winbin/lwjgl-opengl/lwjgl-openal-natives-windows.jar"/>
+    <pathelement location="${basedir}/../../../../../winbin/lwjgl-opengl/lwjgl-openal.jar"/>
+    <pathelement location="${basedir}/../../../../../winbin/lwjgl-opengl/lwjgl-opengl-natives-windows.jar"/>
+    <pathelement location="${basedir}/../../../../../winbin/lwjgl-opengl/lwjgl-opengl.jar"/>
+    <pathelement location="${basedir}/../../../../../winbin/lwjgl-opengl/lwjgl-stb-natives-windows.jar"/>
+    <pathelement location="${basedir}/../../../../../winbin/lwjgl-opengl/lwjgl-stb.jar"/>
+    <pathelement location="${basedir}/../../../../../winbin/lwjgl-opengl/lwjgl.jar"/>
+  </path>
+  <!-- Register Custom Compiler Taskdefs -->
+  <property name="javac2.home" value="${idea.home}/lib"/>
+  <path id="javac2.classpath">
+    <fileset dir="${javac2.home}">
+      <include name="javac2.jar"/>
+      <include name="jdom.jar"/>
+      <include name="asm-all*.jar"/>
+      <include name="forms-*.jar"/>
+    </fileset>
+  </path>
+  <target name="register.custom.compilers">
+    <taskdef name="javac2" classname="com.intellij.ant.Javac2" classpathref="javac2.classpath"/>
+    <taskdef name="instrumentIdeaExtensions" classname="com.intellij.ant.InstrumentIdeaExtensions" classpathref="javac2.classpath"/>
+  </target>
+
+  <!-- Modules -->
+
+
+  <!-- Module 3dGraphics -->
+
+  <dirname property="module.3dgraphics.basedir" file="${ant.file}"/>
+
+
+  <property name="module.jdk.home.3dgraphics" value="${project.jdk.home}"/>
+  <property name="module.jdk.bin.3dgraphics" value="${project.jdk.bin}"/>
+  <property name="module.jdk.classpath.3dgraphics" value="${project.jdk.classpath}"/>
+
+  <property name="compiler.args.3dgraphics" value="-encoding UTF-8 -source 13 -target 13 ${compiler.args}"/>
+
+  <property name="3dgraphics.output.dir" value="${module.3dgraphics.basedir}/out/production/3dGraphics"/>
+  <property name="3dgraphics.testoutput.dir" value="${module.3dgraphics.basedir}/out/test/3dGraphics"/>
+
+  <path id="3dgraphics.module.bootclasspath">
+    <!-- Paths to be included in compilation bootclasspath -->
+  </path>
+
+  <path id="3dgraphics.module.production.classpath">
+    <path refid="${module.jdk.classpath.3dgraphics}"/>
+    <path refid="library.lwjgl-opengl.classpath"/>
+  </path>
+
+  <path id="3dgraphics.runtime.production.module.classpath">
+    <pathelement location="${3dgraphics.output.dir}"/>
+    <path refid="library.lwjgl-opengl.classpath"/>
+  </path>
+
+  <path id="3dgraphics.module.classpath">
+    <path refid="${module.jdk.classpath.3dgraphics}"/>
+    <pathelement location="${3dgraphics.output.dir}"/>
+    <path refid="library.lwjgl-opengl.classpath"/>
+  </path>
+
+  <path id="3dgraphics.runtime.module.classpath">
+    <pathelement location="${3dgraphics.testoutput.dir}"/>
+    <pathelement location="${3dgraphics.output.dir}"/>
+    <path refid="library.lwjgl-opengl.classpath"/>
+  </path>
+
+
+  <patternset id="excluded.from.module.3dgraphics">
+    <patternset refid="ignored.files"/>
+  </patternset>
+
+  <patternset id="excluded.from.compilation.3dgraphics">
+    <patternset refid="excluded.from.module.3dgraphics"/>
+  </patternset>
+
+  <path id="3dgraphics.module.sourcepath">
+    <dirset dir="${module.3dgraphics.basedir}">
+      <include name="src"/>
+      <include name="res"/>
+    </dirset>
+  </path>
+
+  <path id="3dgraphics.module.test.sourcepath">
+    <dirset dir="${module.3dgraphics.basedir}">
+      <include name="res/test"/>
+    </dirset>
+  </path>
+
+
+  <target name="compile.module.3dgraphics" depends="compile.module.3dgraphics.production,compile.module.3dgraphics.tests" description="Compile module 3dGraphics"/>
+
+  <target name="compile.module.3dgraphics.production" depends="register.custom.compilers" description="Compile module 3dGraphics; production classes">
+    <mkdir dir="${3dgraphics.output.dir}"/>
+    <javac2 destdir="${3dgraphics.output.dir}" debug="${compiler.debug}" nowarn="${compiler.generate.no.warnings}" memorymaximumsize="${compiler.max.memory}" fork="true" executable="${module.jdk.bin.3dgraphics}/javac">
+      <compilerarg line="${compiler.args.3dgraphics}"/>
+      <bootclasspath refid="3dgraphics.module.bootclasspath"/>
+      <classpath refid="3dgraphics.module.production.classpath"/>
+      <src refid="3dgraphics.module.sourcepath"/>
+      <patternset refid="excluded.from.compilation.3dgraphics"/>
+    </javac2>
+
+    <copy todir="${3dgraphics.output.dir}">
+      <fileset dir="${module.3dgraphics.basedir}/src">
+        <patternset refid="compiler.resources"/>
+        <type type="file"/>
+      </fileset>
+      <fileset dir="${module.3dgraphics.basedir}/res">
+        <patternset refid="compiler.resources"/>
+        <type type="file"/>
+      </fileset>
+    </copy>
+  </target>
+
+  <target name="compile.module.3dgraphics.tests" depends="register.custom.compilers,compile.module.3dgraphics.production" description="compile module 3dGraphics; test classes" unless="skip.tests">
+    <mkdir dir="${3dgraphics.testoutput.dir}"/>
+    <javac2 destdir="${3dgraphics.testoutput.dir}" debug="${compiler.debug}" nowarn="${compiler.generate.no.warnings}" memorymaximumsize="${compiler.max.memory}" fork="true" executable="${module.jdk.bin.3dgraphics}/javac">
+      <compilerarg line="${compiler.args.3dgraphics}"/>
+      <bootclasspath refid="3dgraphics.module.bootclasspath"/>
+      <classpath refid="3dgraphics.module.classpath"/>
+      <src refid="3dgraphics.module.test.sourcepath"/>
+      <patternset refid="excluded.from.compilation.3dgraphics"/>
+    </javac2>
+
+    <copy todir="${3dgraphics.testoutput.dir}">
+      <fileset dir="${module.3dgraphics.basedir}/res/test">
+        <patternset refid="compiler.resources"/>
+        <type type="file"/>
+      </fileset>
+    </copy>
+  </target>
+
+  <target name="clean.module.3dgraphics" description="cleanup module">
+
+
+    <delete dir="${3dgraphics.output.dir}"/>
+    <delete dir="${3dgraphics.testoutput.dir}"/>
+  </target>
+
+  <target name="init" description="Build initialization">
+    <!-- Perform any build initialization in this target -->
+  </target>
+
+  <target name="clean" depends="clean.module.3dgraphics" description="cleanup all"/>
+
+  <target name="build.modules" depends="init, clean, compile.module.3dgraphics" description="build all modules">
+
+    <jar destfile="./dist/Wireframe.jar">
+      <fileset dir="${3dgraphics.testoutput.dir}"/>
+      <fileset dir="${3dgraphics.output.dir}"/>
+      <manifest>
+        <attribute name="Main-Class" value="test.TestMain"/>
+      </manifest>
+    </jar>
+  </target>
+  <target name="run" depends="build.modules" description="run">
+    <java classpath="library.lwjgl-opengl.classpath" jar="Wireframe.jar" fork="true"/>
+  </target>
+  <target name="all" depends="build.modules" description="build all"/>
+
+
+
+
+</project>

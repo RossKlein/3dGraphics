@@ -1,0 +1,4 @@
+things I want v2 to be good at
+good camera matrix flow
+better math class
+update scene to be able to switch between scenes

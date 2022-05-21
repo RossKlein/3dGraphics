@@ -22,7 +22,7 @@ public class Display {
 
     public Display() {
         windowId = 0;
-        title = "not working";
+        title = "Window";
         x = -1;
         y = -1;
         w = 1;
@@ -167,9 +167,10 @@ public class Display {
         glfwWindowHint(GLFW.GLFW_VISIBLE, GLFW.GLFW_FALSE);
         glfwWindowHint(GLFW.GLFW_RESIZABLE, resizable);
         glfwWindowHint(GLFW.GLFW_CONTEXT_VERSION_MAJOR, 4);
-        glfwWindowHint(GLFW.GLFW_CONTEXT_VERSION_MINOR, 1);
+        glfwWindowHint(GLFW.GLFW_CONTEXT_VERSION_MINOR, 6);
         glfwWindowHint(GLFW.GLFW_OPENGL_PROFILE, GLFW.GLFW_OPENGL_CORE_PROFILE);
         glfwWindowHint(GLFW.GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);
+
 
         if( x == -1&&y == -1) {
             GLFWVidMode vidMode = GLFW.glfwGetVideoMode( GLFW.glfwGetPrimaryMonitor());
@@ -178,6 +179,7 @@ public class Display {
         }
 
         windowId = GLFW.glfwCreateWindow(w, h, title, fullscreen, sharedWindow);
+
         if(windowId == 0){
             throw new IllegalStateException( "failed to create display");
         }
@@ -195,8 +197,9 @@ public class Display {
 
         GL11.glEnable(GL11.GL_DEPTH_TEST);
         GL11.glDepthFunc(GL11.GL_LESS);
-        //GL11.glEnable(GL11.GL_CULL_FACE);
-        //GL11.glCullFace(GL11.GL_BACK);
+//        GL11.glEnable(GL11.GL_CULL_FACE);
+//        GL11.glCullFace(GL11.GL_BACK);
+
 
     }
 

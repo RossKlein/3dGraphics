@@ -92,5 +92,8 @@ public class Vec3f {
         return this;
 
     }
+    public void print(){
+        System.out.println("(" + this.x() + ", " + this.y() + ", " + this.z() + ")");
+    }
 
 }

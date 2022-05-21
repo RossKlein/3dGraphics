@@ -13,7 +13,6 @@ import org.w3c.dom.ls.LSOutput;
 import java.io.FileNotFoundException;
 import java.util.Arrays;
 
-
 public class TestScene extends Scene {
 
     private TexturedModel texturedModel;
@@ -27,7 +26,7 @@ public class TestScene extends Scene {
     private Vec3f target;
     private Camera camera;
     private float aspectratio = (float)Settings.width/(float)Settings.height;
-    private float fov;
+    private float fov = Settings.fov;
     private double oldoff;
     private double yoff;
     private double xvel;
@@ -85,7 +84,6 @@ public class TestScene extends Scene {
         uvCoordinates = teapot.getUvCoordinates();
         normalmodel = modelBuilder.buildModel(vertices, indices, colors, normals);
 
-        fov = 60;
         perspective = sceneShading(fov, aspectratio, 0.1f, -10000);
         modelview = new Mat4f().identity();
         modelm = new Mat4f().identity();
@@ -174,44 +172,45 @@ public class TestScene extends Scene {
             position = position.add(position, yDir);
 
         }
-        target = new Vec3f(lookDir);
+        target = new Vec3f(lookDir).normalize();
+
 
 
         /////
-
 
     }
 
     @Override
     public void render(MasterRenderer renderer) {
 
-        perspective = sceneShading(fov, aspectratio, 0.0001f, -10000);
+        perspective = sceneShading(fov, aspectratio, 0.01f, -1000);
         modelview = modelview.lookAt(new Vec3f(0, 0, 0), target, new Vec3f(0, 1, 0));
-        modelm = modelm.scale(2);
-        modelm = modelm.dot(modelm, modelm.translation(position.x(), position.y(), position.z()));
+        //perspective.string();
+
+        modelm = modelm.dot(modelm.translation(position.x(), position.y(), position.z()), modelm.scale(2));
+
         modelview = modelview.dot(modelview, modelm);
         perspective = perspective.dot(perspective, modelview);
-        renderer.loadMatrix(modelm, "m", false, 0);
-        renderer.loadMatrix(modelview, "v", false,1);
+        renderer.loadMatrix(modelm, "m", false, 0); //not being used
+        renderer.loadMatrix(modelview, "v", false,1); //not being used
         renderer.loadMatrix(perspective, "p", false, 2);
         renderer.loadLightSource(new Vec3f(-200, 200, 300));
         renderer.renderModel(model);
 
-       renderer.renderModel(normalmodel);
+      // renderer.renderModel(normalmodel);
 ///////////////
-
-        perspective = sceneShading(fov, aspectratio, 0.0001f, -10000);
-        modelview = modelview.lookAt(new Vec3f(0, 0, 0), target, new Vec3f(0, 1, 0));
-        modelm = modelm.scale(1f);
-        modelm = modelm.dot(modelm, modelm.translation(position.x()-200, position.y()+200, position.z()+300));
-          modelview = modelview.dot(modelview, modelm);
-          perspective = perspective.dot(perspective, modelview);
-        renderer.loadMatrix(modelm, "m", false, 0);
-        renderer.loadMatrix(modelview, "v", false,1);
-        renderer.loadMatrix(perspective, "p", false, 2);
-        renderer.loadLightSource(new Vec3f(-200, 200, 300));
-
-        renderer.renderModel(othermodel);
+//        perspective = perspective.projection(fov, aspectratio, 0.0001f, -10000);
+//        modelview = modelview.lookAt(new Vec3f(0, 0, 0), target, new Vec3f(0, 1, 0));
+//        modelm = modelm.scale(1f);
+//        modelm = modelm.dot(modelm.translation(position.x()-200, position.y()+200, position.z()+300), modelm);
+//          modelview = modelview.dot(modelview, modelm);
+//          perspective = perspective.dot(perspective, modelview);
+//        renderer.loadMatrix(modelm, "m", false, 0);
+//        renderer.loadMatrix(modelview, "v", false,1);
+//        renderer.loadMatrix(perspective, "p", false, 2);
+//        renderer.loadLightSource(new Vec3f(-200, 200, 300));
+//
+//        renderer.renderModel(othermodel);
 
 
     }

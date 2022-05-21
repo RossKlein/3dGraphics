@@ -1,0 +1,16 @@
+things to change:
+-how information is passed to the Opengl rendering pipeline. In order to send a model to the GPU I have to recalculate
+all the matrices because I have no good system to handle this common need. There is also no coordinate or chunk system
+ which would facilitate placing objects in the world.
+
+ -how I can switch between different scenes. The scene system is extremely barebones and is not really usable in the way
+  it is intended. It should be able to seamlessly switch between different scenes, such as a title screen, a menu, or a
+   render.
+
+-how models are stored in those scenes. Similar to point one, One upgrade would be working on a better model system which
+ handles the tasks that, at the time, I did not know needed to be handled.
+
+ -MAKE FUCKING STATIC METHODS INSTEAD OF CREATING NEW OBJECTS FOR EVERY FUCKING MATRIX AND CALCULATION
+
+ -flesh out sceneshading to actually handle the matrices
+ -

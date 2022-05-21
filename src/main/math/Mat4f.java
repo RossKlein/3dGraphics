@@ -6,10 +6,10 @@ import java.util.Vector;
 
 public class Mat4f {
 
-    float m00, m01, m02, m03;
-    float m10, m11, m12, m13;
-    float m20, m21, m22, m23;
-    float m30, m31, m32, m33;
+    private float m00, m01, m02, m03;
+    private float m10, m11, m12, m13;
+    private float m20, m21, m22, m23;
+    private float m30, m31, m32, m33;
 
     public Mat4f () { }
     public Mat4f (float[] matrix) {
@@ -241,15 +241,43 @@ public class Mat4f {
     }
 
     public Mat4f projection(float FOV, float aspectRatio, float zNear, float zFar) {
+        Mat4f result = new Mat4f().empty();
+
         float zm = zFar - zNear;
         float zp = zFar + zNear;
         double fovInRadians = Math.toRadians((double) FOV/2);
-        Mat4f result = new Mat4f().empty();
-        result.m00((1/((float) Math.tan(fovInRadians)))/aspectRatio);
         result.m11((1/((float) Math.tan(fovInRadians))));
+        result.m00((1/((float) Math.tan(fovInRadians)))/aspectRatio);
         result.m22(-1*zp/zm);
-        result.m32(-1);
         result.m23((-2*zFar*zNear)/zm);
+        result.m32(-1);
+
+     //infinite projection matrix
+//        result.m22(-1);
+//        result.m23(-1);
+//        result.m32(-2*zNear);
+
+
+
+
+        return result;
+    }
+    public Mat4f setFrustum(float l, float r, float b, float t, float n, float f){
+        //this code would be used elsewhere its how you calculate  l r b t n f
+//        float tangent = (float) Math.tan(fovInRadians);
+//        float height = zNear * tangent;
+//        float width = height * aspectRatio;
+//        result = setFrustum(-width, width, -height, height, zNear, zFar);
+
+        Mat4f result = new Mat4f().empty();
+        result.m00(2 * n / (r - l));
+        result.m02((r + l)/(r - l));
+        result.m11(2*n /(t - b));
+        result.m12((t + b)/(t - b));
+        result.m22(-1*(f + n)/(f-n));
+        result.m23(-2*f*n/(f - n));
+        result.m32(-1);
+
         return result;
     }
 
@@ -269,23 +297,16 @@ public class Mat4f {
     }
 
     public Mat4f lookAt(Vec3f eye, Vec3f target, Vec3f upDir) {
-//        Vec3f forward = new Vec3f().sub(eye, target);
-//        forward.normalize();
-//
-//        Mat4f matrix = new Mat4f().identity();
-//        Vec3f a = new Vec3f(forward).mult(new Vec3f().dot(upDir, forward));
-//        Vec3f up = new Vec3f().sub(upDir, a);
-//
-//        Vec3f left = new Vec3f().cross(upDir, forward);
-//        left.normalize();
+        Mat4f matrix = new Mat4f().identity();
+
         Vec3f forward = new Vec3f().sub(eye, target);
         forward.normalize();
 
-        Mat4f matrix = new Mat4f().identity();
-
         Vec3f left = new Vec3f().cross(upDir, forward);
         left.normalize();
+
         Vec3f up = new Vec3f().cross(forward, left);
+
         matrix.m00(left.x());
         matrix.m01(left.y());
         matrix.m02(left.z());
