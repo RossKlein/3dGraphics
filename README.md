@@ -1,9 +1,10 @@
-# Documentation for the Graphics engine
+
 Link to associated paper: https://docs.google.com/document/d/1iGiupJWMqs-haraSR6QAuSQnwIeTU6KBH-DkG3wUjmI/edit?usp=sharing
 
-
+A graphics engine written in java using the LWJGL library which offers native bindings to OpenGL, GLFW, and other essential graphics development libraries/API’s. I only used the OpenGL and GLFW libraries which is significant given my goal of relying on libraries as little as possible. This was a passion project and was also for my high school IB physics SL IA which I received a 6 on (The IB rating system is a 7 point system, more information can be found here on page 12). A paper was also written outlining the architecture and technology behind the engine.
 Engine
 
+# Documentation for the Graphics engine
 1.  core
     1.  Display – Configuration and initialization of window elements
         1.  Display – initial configuration variables
