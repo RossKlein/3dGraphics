@@ -1,3 +1,4 @@
 RossGraphicsEngine.7z
-out
 *.iml
+res/test/source/*
+/out/

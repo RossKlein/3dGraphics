@@ -2,14 +2,19 @@ package Ross.Modules.models;
 
 
 import Ross.Modules.Settings;
+import Ross.textures.Texture;
+import Ross.textures.TextureLoader;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL13;
 import org.lwjgl.opengl.GL20;
 
 public class ModelRenderer {
 
+    Texture defaulttexture;
     public ModelRenderer() {
 
+        TextureLoader loader = new TextureLoader();
+        defaulttexture = loader.loadTexture("res/test/brick.png");
     }
 
     public void render( Model model) {
@@ -53,7 +58,12 @@ public class ModelRenderer {
         GL20.glEnableVertexAttribArray(2);
         GL20.glEnableVertexAttribArray(3);
         GL13.glActiveTexture(GL13.GL_TEXTURE0);
-        texturedModel.getTexture().bind();
+        if(texturedModel.getTexture() != null){
+
+            texturedModel.getTexture().bind();
+        } else {
+            defaulttexture.bind();
+        }
     }
     private void renderTexturedModel(TexturedModel texturedModel) {
         if(Settings.wireframe){
@@ -64,7 +74,12 @@ public class ModelRenderer {
     }
 
     private void unbindTexturedModel(TexturedModel texturedModel) {
-        texturedModel.getTexture().unbind();
+        if(texturedModel.getTexture() != null){
+
+            texturedModel.getTexture().unbind();
+        } else {
+            defaulttexture.unbind();
+        }
         GL20.glDisableVertexAttribArray(0);
         GL20.glDisableVertexAttribArray(1);
         GL20.glDisableVertexAttribArray(2);

@@ -7,8 +7,11 @@ import Ross.Modules.math.Mat4f;
 import Ross.Modules.math.Vec3f;
 import Ross.Modules.models.Model;
 import Ross.Modules.models.ModelBuilder;
+import Ross.Modules.models.TexturedModel;
 import Ross.Modules.scene.Scene;
 import Ross.Modules.scene.Utils;
+import Ross.ResourceLoader;
+import Ross.textures.Texture;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
@@ -20,27 +23,28 @@ public class testscene implements Scene {
     Model floor;
     Utils utils;
     public Mat4f modelm;
-    public Model model;
+    public ArrayList<TexturedModel> tmodels;
     List<JobProfiler.FlameEvent> events;
     FlamegraphBuilder builder;
     ModelBuilder modelBuilder;
     Model flamegraphModel;
     List<FlameRect> rects;
+    TexturedModel texmodel;
     boolean enterdown = false;
 
     public testscene(JobModule module) {
 
         this.module = module;
         events = new ArrayList<>();
+        tmodels = new ArrayList<>();
         this.modelBuilder = new ModelBuilder();
     }
 
     private Job matrixWork = new Job() {
         @Override
         public void code() {
-
-
             modelm = modelm.dot(modelm.translation(module.position.x(), module.position.y(), module.position.z()), modelm.dot(module.rotationctrl.toMatrix(), modelm.translation(0,0,0)));
+            modelm = modelm.dot(modelm, modelm.scale(100));
             if(module.inputHandler.isKeyDown(GLFW.GLFW_KEY_ENTER)){
                 events = JobProfiler.getFlamegraphEvents();
                 builder = new FlamegraphBuilder(events, Settings.width);
@@ -87,10 +91,13 @@ public class testscene implements Scene {
         module.renderer.loadMatrix(module.modelview, "v", false, 1);
         module.renderer.loadMatrix(module.perspective, "p", false, 2);
         module.renderer.loadLightSource(new Vec3f(-200, 200, 300));
+
         module.renderer.loadMatrix(modelm, "m", false, 0);
         module.renderer.addBindBool("useFlatColor", false);
+        for( TexturedModel m : tmodels){
+            module.renderer.renderModel(m);
 
-        module.renderer.renderModel(model);
+        }
 
         // 2. Render Flamegraph Overlay
 
@@ -138,7 +145,13 @@ public class testscene implements Scene {
         this.utils = utils;
         ArrayList<Job> jobList = new ArrayList<>();
         //set utils for all util necessary jobs
-        model = this.utils.buildModel("res/test/utah-teapot.obj");
+//        texmodel = this.utils.buildASSIMPmodel("res/test/source/20250408_004_OUTPUT_LOD04/20250408_004_RC_LOD0.obj",
+//                "res/test/source/20250408_004_OUTPUT_LOD04/20250408_004_RC_LOD0_u0_v0_diffuse.png");
+        tmodels.addAll(this.utils.buildASSIMPmodelMultiple("res/test/mazda-rx-7/source/mazda_rx-7_panspeed_fd3s.glb", "res/test/mazda-rx-7/textures/"));
+        //it was rotated 90 degrees
+        module.rotationctrl = module.rotationctrl.mult(module.rotationctrl, module.rotationctrl.rotation(1, 0, 0, 90));
+
+
 
         jobList.add(startWork);
 

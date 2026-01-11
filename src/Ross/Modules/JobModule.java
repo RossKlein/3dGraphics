@@ -44,7 +44,8 @@ public class JobModule {
     volatile public float xrotate;
     volatile public float yrotate;
     volatile public float zrotate;
-    volatile public Vec3f position = new Vec3f(0, 0, -30);
+    volatile public Vec3f position = new Vec3f(0, 0, -200);
+    public float scale = 0.5f;
 
     Scene currentScene = null;
 
@@ -133,7 +134,7 @@ public class JobModule {
 
 
 
-    private Job controls = new Job() {
+    private Job controlsAndMatrix = new Job() {
 
         @Override
         public void code() {
@@ -168,7 +169,6 @@ public class JobModule {
             Vec3f forward = rotation.rotate(rotation, zdir);
             Vec3f xDir = rotation.rotate(rotation, none_zero_zero);
             Vec3f yDir = rotation.rotate(rotation, zero_one_zero);
-            float scale = 0.5f;
             forward = forward.mult(scale);
             xDir = xDir.mult(scale);
             yDir = yDir.mult(scale);
@@ -196,21 +196,22 @@ public class JobModule {
                 position = position.add(position, yDir);
 
             }
+            if (inputHandler.isKeyDown(GLFW.GLFW_KEY_MINUS)) {//e
+                scale -= .01;
 
+            }
+            if (inputHandler.isKeyDown(GLFW.GLFW_KEY_EQUAL)) {//e
+                scale += .01;
 
-        }
-    };
-    private Job matrixWork = new Job() {
-        @Override
-        public void code() {
+            }
 
             perspective = perspective.projection(fov, (float) Settings.width/(float)Settings.height, 0.01f, -1000);
 
             modelview = rotation.toMatrix();
 
-
         }
     };
+
 
     //Main thread - render thread
     //Update thread - dispatches each update frames Scene to the threadpool - tick timed
@@ -228,8 +229,7 @@ public class JobModule {
 
 
 
-        updateQueue.assign(controls);
-        updateQueue.assign(matrixWork);
+        updateQueue.assign(controlsAndMatrix);
 
 
         for (Job getjob : currentScene.update(this)) {
