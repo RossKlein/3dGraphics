@@ -29,10 +29,10 @@ A `Transform` (position/rotation/scale → matrix) paired with a `Model` to form
 
 → See [model-system.md](model-system.md)
 
-### 2. Instanced Rendering
-One draw call for all trees of a type, all rocks of a type. Essential for a world with thousands of repeated objects.
+### 2. Entity System + Instanced Rendering
+`GameObject` base class unifies all world objects behind a single lifecycle. Creating an object automatically queues its initialization jobs — callers never touch `JobModule` directly. Instanced rendering (`InstanceBatch`) gives one draw call for all trees of a type.
 
-→ See [model-system.md](model-system.md)
+→ See [entity-system.md](entity-system.md) (detailed) and [model-system.md](model-system.md) (quick reference)
 
 ### 3. Procedural Terrain + Chunk Streaming
 Heightmap-based terrain divided into chunks. Chunks generate on worker threads and stream in/out as the camera moves. Multiple LOD levels per chunk.
