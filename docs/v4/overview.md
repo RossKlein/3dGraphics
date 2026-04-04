@@ -1,52 +1,58 @@
-# lqjgl Graphics Engine — v4 Planning Overview
+# lqjgl Engine — v4 Planning Overview
 
 ## Goal
 
-Build a procedurally generated world on top of the v3 engine. The world should support:
-- Heightmap-based terrain (rolling hills, mountains, rivers)
-- Voxel-style blocks (Minecraft-style, optional track)
-- Authored OBJ assets placed in the world (trees, rocks, props)
-- Efficient rendering of large amounts of geometry
+Build a bird flight game: an open world aerial experience driven by procedural terrain, beautiful atmosphere-first shaders, and aggressive rendering optimizations. The visual reference is Subnautica — shader tricks and atmosphere making limited geometry look exceptional.
 
-This requires two main additions to v3: a **model/entity system** and a **world generation system**. These are documented separately and link back here.
+→ See [game-vision.md](game-vision.md) for the full game direction.
 
 ---
 
 ## What v3 Gets Right (Keep It)
 
-| System | Status |
-|--------|--------|
-| Job system (work-stealing, subtasks, duration sorting) | Keep as-is |
-| Quaternion camera with dual-mode controls | Keep as-is |
-| Flamegraph profiler | Keep as-is |
-| `ModelBuilder` (raw arrays → GPU VAO/VBO) | Keep as the GPU upload layer |
-| `OBJLoader` | Keep for prop loading |
-| Phong lighting in shader | Keep, extend |
-| Render/Update thread separation | Keep as-is |
+| System | Notes |
+|--------|-------|
+| Job system (work-stealing, subtasks) | Keep. Extend with priority levels and cancellation. |
+| Quaternion camera | Keep. Replace with flight physics camera. |
+| Flamegraph profiler | Keep as-is. |
+| `ModelBuilder` (arrays → GPU) | Keep as the GPU upload layer. |
+| `OBJLoader` | Keep for prop loading (rocks, the bird model). |
+| Phong lighting | Starting point. Extend to support dynamic sun direction. |
+| Render/Update thread separation | Keep as-is. |
 
 ---
 
-## What v3 Is Missing
+## What v4 Adds
 
-### 1. Transform / Entity System
-v3 scenes manage a single model and its matrix by hand. There is no way to have 500 trees each with their own position without writing 500 lines of boilerplate. A lightweight `Transform` + `Entity` layer solves this.
+### 1. Transform + Entity System
+A `Transform` (position/rotation/scale → matrix) paired with a `Model` to form an `Entity`. Scenes manage lists of entities rather than one model by hand.
+
+→ See [model-system.md](model-system.md)
+
+### 2. Instanced Rendering
+One draw call for all trees of a type, all rocks of a type. Essential for a world with thousands of repeated objects.
 
 → See [model-system.md](model-system.md)
 
-### 2. Procedural Mesh Generation
-v3 can only get geometry from OBJ files. Procedural worlds need geometry generated at runtime from noise, heightmaps, or block data. A set of `MeshBuilder` utilities produces float arrays that feed directly into the existing `ModelBuilder`.
+### 3. Procedural Terrain + Chunk Streaming
+Heightmap-based terrain divided into chunks. Chunks generate on worker threads and stream in/out as the camera moves. Multiple LOD levels per chunk.
 
 → See [world-generation.md](world-generation.md)
 
-### 3. Chunk Management
-The world is too large to hold in GPU memory at once. It must be divided into chunks that are loaded, generated, and unloaded as the camera moves. Chunk generation jobs fit naturally into the existing job system.
+### 4. LOD System
+Each chunk and each instanced asset class has multiple detail levels. The active LOD is chosen by distance from camera. Atmosphere haze is tuned to cover LOD transitions.
 
 → See [world-generation.md](world-generation.md)
 
-### 4. Instanced Rendering
-Placing 1000 trees as 1000 separate draw calls is too slow. Instanced rendering sends one draw call with per-instance transform data, cutting CPU overhead dramatically.
+### 5. Atmosphere-First Shaders
+Sky gradient, atmospheric haze (distance fog), god rays, wind vertex shader, water surface, normal mapping. All are shader effects — no additional geometry or CPU cost.
 
-→ See [model-system.md](model-system.md)
+→ See [shaders.md](shaders.md) *(to be written)*
+
+### 6. Job System — Priority + Cancellation
+The existing job scheduler sorts by duration but has no explicit priority levels and no way to cancel in-flight jobs. Flying fast means you can outrun your chunk generation. Needs: priority tiers, cancellation tokens, and a proper dependency graph.
+
+→ See [job-system.md](job-system.md) *(to be written)*
 
 ---
 
@@ -55,63 +61,56 @@ Placing 1000 trees as 1000 separate draw calls is too slow. Instanced rendering 
 ```
 Ross/
   Instance/
-    Main.java              (unchanged)
-    WorldScene.java        (new scene replacing testscene for the world)
+    Main.java
+    BirdScene.java             (new main scene)
   Modules/
-    Engine.java            (unchanged)
-    JobModule.java         (unchanged)
-    JobQueue.java          (unchanged)
-    Job.java               (unchanged)
-    Renderer.java          (extended for entity batching)
-    Window.java            (unchanged)
-    math/                  (unchanged)
-    input/                 (unchanged)
-    flamegraph/            (unchanged)
+    Engine.java                (unchanged)
+    JobModule.java             (extended: priority queues)
+    JobQueue.java              (extended: priority + cancellation)
+    Job.java                   (extended: priority field, cancel token)
+    Renderer.java              (extended: entity batching, instanced draw)
+    Window.java                (unchanged)
+    math/                      (unchanged)
+    input/                     (unchanged)
+    flamegraph/                (unchanged)
     shaders/
-      Shader.java          (unchanged)
-      StaticShader.java    (unchanged)
-      TerrainShader.java   (new)
+      Shader.java              (unchanged)
+      StaticShader.java        (unchanged)
+      TerrainShader.java       (NEW)
+      SkyShader.java           (NEW)
+      WaterShader.java         (NEW)
     models/
-      Model.java           (unchanged)
-      TexturedModel.java   (unchanged)
-      ModelBuilder.java    (unchanged)
-      OBJLoader.java       (unchanged)
-      Entity.java          (NEW — model + transform)
-      Transform.java       (NEW — position/rotation/scale → matrix)
-      MeshBuilder.java     (NEW — procedural geometry utilities)
-      InstancedModel.java  (NEW — model with per-instance VBO)
+      Model.java               (unchanged)
+      TexturedModel.java       (unchanged)
+      ModelBuilder.java        (unchanged)
+      OBJLoader.java           (unchanged)
+      Transform.java           (NEW)
+      Entity.java              (NEW)
+      MeshBuilder.java         (NEW — procedural geometry)
+      InstancedModel.java      (NEW — one draw call, many transforms)
+      Billboard.java           (NEW — camera-facing quad for distant assets)
     scene/
-      Scene.java           (unchanged)
-      Utils.java           (extended)
+      Scene.java               (unchanged)
+      Utils.java               (extended)
     world/
-      World.java           (NEW — owns chunk map, manages lifecycle)
-      Chunk.java           (NEW — fixed-size region of world data)
-      ChunkMesh.java       (NEW — generates terrain mesh from heightmap)
-      VoxelChunk.java      (NEW — optional: voxel block data + mesh gen)
-      HeightmapGenerator.java (NEW — noise-based heightmap)
-      NoiseUtil.java       (NEW — Perlin/Simplex noise)
+      World.java               (NEW — chunk map, lifecycle, streaming)
+      Chunk.java               (NEW — one terrain tile)
+      ChunkMesh.java           (NEW — heightmap → mesh arrays)
+      HeightmapGenerator.java  (NEW — layered noise → float[][])
+      BiomeMap.java            (NEW — height + humidity → biome)
+      AssetPlacer.java         (NEW — procedural prop placement per chunk)
+      LODSelector.java         (NEW — distance → LOD level)
+    flight/
+      FlightPhysics.java       (NEW — bank/pitch/speed/thermals)
+      FlightCamera.java        (NEW — follows bird, lag, tilt)
 ```
-
----
-
-## Development Tracks
-
-Two parallel tracks can be developed independently:
-
-**Track A — Heightmap Terrain**
-Dense continuous surface mesh. Good for natural landscapes. Simpler rendering, harder to make interactive/destructible.
-
-**Track B — Voxel World**
-Discrete blocks. More complex mesh generation (greedy meshing). Naturally destructible and interactive. Higher memory overhead per chunk.
-
-Both tracks share the same chunk lifecycle, job system integration, and entity/prop system. They differ only in what `Chunk` contains and how `ChunkMesh` generates geometry.
 
 ---
 
 ## Open Questions
 
-- [ ] Terrain only, voxel only, or both?
-- [ ] What scale? (small demo scene vs. infinite world)
-- [ ] Biomes / multiple terrain types?
-- [ ] Physics / collision, or purely visual?
-- [ ] Day/night cycle, dynamic lighting?
+- [ ] What is the player character? A specific bird (eagle, hawk) or abstract?
+- [ ] Is there a goal / progression, or pure exploration?
+- [ ] Multiplayer ever? (affects architecture significantly)
+- [ ] Target FPS: 60 locked, uncapped, or VR-ready 90?
+- [ ] What platforms? (Windows only matches current exe release)

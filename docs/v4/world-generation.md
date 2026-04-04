@@ -1,227 +1,233 @@
 # v4 World Generation
 
-## Overview
+## Design Philosophy
 
-The world is too large to fit in memory or GPU at once. It is divided into **chunks** — fixed-size square regions of the world. Only chunks near the camera are loaded. As the camera moves, new chunks are generated and old ones are unloaded.
+The world is seen from above and at speed. This changes everything about how terrain must be designed:
 
-Chunk generation is a CPU-heavy task that fits naturally into the existing job system: each chunk generates on a worker thread, then uploads its mesh to the GPU on the render thread.
-
-Two tracks are planned. They share the same chunk lifecycle and differ only in what data a chunk holds and how its mesh is built.
+- **Large view distance** — you can see many kilometers of terrain simultaneously
+- **Fast chunk crossing** — flying at speed means crossing chunk boundaries much faster than walking
+- **Top-down visibility** — terrain must look good from above (texture/color variety), not just at the edges/silhouette
+- **Atmosphere as performance** — exponential haze limits effective render distance, which is also our LOD cover
 
 ---
 
-## Chunk Fundamentals
+## Heightmap Terrain
 
-### Chunk Coordinates
+### Noise Stack
 
-The world is addressed in chunk coordinates `(cx, cz)`. A chunk at `(cx, cz)` covers world-space `x ∈ [cx * CHUNK_SIZE, (cx+1) * CHUNK_SIZE)` and similarly for `z`. `y` is determined by terrain height (heightmap track) or bounded (voxel track).
+The heightmap is built from multiple noise layers combined (fractal Brownian motion):
 
-`CHUNK_SIZE` is a tunable constant — 16 and 32 are common choices.
+```
+base continent shape   → very low frequency, high amplitude (where is land vs sea)
+mountain ridges        → medium frequency, medium amplitude
+rolling hills          → medium-high frequency, low amplitude
+surface detail         → high frequency, very low amplitude (for normal map variation)
+```
 
-### Chunk Lifecycle
+A separate **humidity map** (different noise seed, same technique) combined with the height map determines biome assignment. This is the same approach used by most terrain generators (Minecraft included, just in 2D).
+
+### Biome Assignment
+
+```
+height < seaLevel                         → Ocean
+height < beachLine                        → Beach / Coast
+height >= beachLine, humidity < 0.3       → Dry plains / Savanna
+height >= beachLine, humidity >= 0.3      → Grassland / Forest
+height >= hillLine                        → Hills
+height >= mountainLine                    → Mountains / Rock
+height >= alpineLine                      → Alpine / Snow
+```
+
+Biome determines vertex color palette and which assets get placed (trees, rocks, etc.).
+
+### Chunk Size and Resolution
+
+- **Chunk size**: 64 world units × 64 world units (tunable)
+- **LOD 0 grid**: 64×64 quads (65×65 vertices) — full resolution
+- **LOD 1**: 32×32 quads
+- **LOD 2**: 16×16 quads
+- **LOD 3**: 8×8 quads
+- **LOD 4**: 4×4 quads — just the silhouette, hidden by haze
+
+Vertices are shared at chunk edges for the same LOD level. LOD seams (different LOD adjacent chunks) are hidden by haze at the distances where they occur.
+
+---
+
+## Chunk Lifecycle
 
 ```
 UNLOADED
-   │  camera enters load radius
+   │  enters load radius
    ▼
-QUEUED      ← added to generation job queue
-   │  worker thread picks it up
+QUEUED (priority = distance from camera)
+   │  worker picks it up
    ▼
-GENERATING  ← heightmap computed, mesh arrays built (CPU, off main thread)
-   │  generation complete
+GENERATING (CPU: noise → heightmap → mesh arrays for all LOD levels)
+   │  can be CANCELLED if chunk exits range while generating
    ▼
-UPLOADING   ← ModelBuilder.buildModel() called (must happen on GL thread)
-   │  upload complete
+PENDING_UPLOAD (waiting for GL thread slot)
+   │  GL thread uploads VAOs
    ▼
-LOADED      ← Entity created, chunk renders each frame
-   │  camera exits unload radius
+LOADED (renders each frame at appropriate LOD)
+   │  exits unload radius
    ▼
-UNLOADED    ← VAO/VBO freed, Entity removed
+UNLOADED (VAOs freed)
 ```
 
-### `World`
+### Load/Unload Radii
 
-```java
-class World {
-    HashMap<Long, Chunk> chunks;        // key = packed (cx, cz)
-    HeightmapGenerator heightmapGen;
+Two separate radii prevent thrashing (chunk loading and unloading on every frame near the boundary):
 
-    void update(Vec3f cameraPos);       // load/unload chunks based on camera
-    void render(Renderer renderer);     // submit loaded chunk entities
-    Chunk getChunk(int cx, int cz);
-}
+- **Load radius**: 12 chunks — start generating anything inside this
+- **Unload radius**: 15 chunks — free anything outside this
+
+### Predictive Loading
+
+Because the camera moves fast, we also load chunks in the **flight direction** beyond the normal load radius:
+
+```
+predictiveChunks = camera.velocity.normalize() * PREDICTIVE_LOOK_AHEAD
 ```
 
-`World.update()` runs each frame as an update job. It computes which chunks should be loaded, queues generation jobs for missing ones, and unloads distant chunks.
+Chunks along the flight vector get priority boost even if they are outside normal load distance.
 
 ---
 
-## Track A — Heightmap Terrain
+## LOD System
 
-### Concept
+### LOD Selection
 
-A heightmap is a 2D array of float values representing ground elevation. A terrain chunk is a grid mesh where each vertex's Y coordinate comes from the heightmap.
+Each visible chunk gets an LOD level each frame based on distance from camera:
 
-### `HeightmapGenerator`
+| Distance | LOD Level | Grid |
+|----------|-----------|------|
+| 0–3 chunks | LOD 0 | 64×64 |
+| 3–6 chunks | LOD 1 | 32×32 |
+| 6–10 chunks | LOD 2 | 16×16 |
+| 10–15 chunks | LOD 3 | 8×8 |
+| 15–20 chunks | LOD 4 | 4×4 |
+| >20 chunks | hidden | — |
 
-Uses layered noise (fractal Brownian motion) to produce a `float[][]` for any `(cx, cz)`. Noise is deterministic from a world seed so chunks can be regenerated identically.
+All LOD levels are generated once when a chunk first loads (on the worker thread). Switching LOD is just switching which VAO to bind — no regeneration.
 
-```
-amplitude = 40.0
-frequency = 0.005
-octaves = 6
-persistence = 0.5     // how much each octave contributes
-lacunarity = 2.0      // how much frequency increases per octave
-```
+### LOD Transitions and Haze
 
-Simplex noise is preferred over Perlin for terrain — fewer directional artifacts.
+The haze distance (fog density) is tuned so that LOD transitions happen inside the haze zone. Specifically, the LOD 1→2 transition occurs at the distance where haze reduces visibility to ~60%. The pop is invisible.
 
-### `ChunkMesh` (heightmap variant)
-
-Given a `float[][]` heightmap of size `(N+1) x (N+1)`:
-- Produces an `N x N` grid of quads (2 triangles each)
-- Vertex count: `(N+1)²`
-- Index count: `N² * 6`
-- Normals computed per vertex by averaging surrounding triangle normals
-
-Color can be assigned by elevation bands:
-```
-y < waterLevel    → sandy/blue
-y < grassLevel    → green
-y < rockLevel     → grey
-y >= rockLevel    → white (snow)
-```
-
-Or by slope (flat = grass, steep = rock).
-
-### Seams
-
-Adjacent chunks share edge vertices (same heightmap values due to deterministic noise), so there are no visible cracks between chunks.
+This is the same technique Subnautica uses — the "murk" distance is tuned to match the LOD levels.
 
 ---
 
-## Track B — Voxel World
+## Asset Placement
 
-### Concept
+Each chunk, once its heightmap is generated, also runs an **asset placement pass** to determine where props go (trees, rocks, etc.). This runs on the same worker thread as mesh generation.
 
-Each chunk is a 3D array of block IDs. Only the visible faces of blocks are added to the mesh (face culling). Adjacent same-type blocks can be merged into larger quads (greedy meshing) to reduce vertex count.
+### Placement Algorithm
 
-### `VoxelChunk`
+For each asset type in the chunk's biome:
+1. Generate a Poisson disk sample set (evenly spaced, no clustering) using chunk coordinates as seed
+2. For each sample point, query heightmap height and slope
+3. Place asset if: biome matches, slope is under threshold, height is in range
+4. Store as a list of `(assetType, worldPosition, rotation, scale)` tuples
 
-```java
-class VoxelChunk extends Chunk {
-    byte[][][] blocks;   // [x][y][z], value = block type ID
-    int width, height, depth;
+The tuples are handed to `AssetPlacer` which adds them to the appropriate `InstancedModel` buffer.
 
-    void set(int x, int y, int z, byte type);
-    byte get(int x, int y, int z);
-}
-```
+### Asset LOD
 
-### Block Types
+Assets also have LOD levels:
 
-Start simple:
+| Distance | Trees | Rocks |
+|----------|-------|-------|
+| 0–4 chunks | Full mesh | Full mesh |
+| 4–8 chunks | Reduced mesh | Reduced mesh |
+| 8–12 chunks | Billboard (flat quad) | Billboard |
+| >12 chunks | Hidden | Hidden |
 
-| ID | Name | Color |
-|----|------|-------|
-| 0  | Air  | (skip) |
-| 1  | Grass | green |
-| 2  | Dirt | brown |
-| 3  | Stone | grey |
-| 4  | Water | blue |
+Billboards are camera-facing quads with a pre-rendered or simple texture. They cost almost nothing to render and are invisible at distance.
 
-### Mesh Generation
+---
 
-Simple face-culling approach first (greedy meshing is an optimization for later):
+## Mesh Generation Details
 
-For each block that is not air:
-- Check each of its 6 faces
-- If the adjacent block is air (or chunk boundary), emit a quad for that face
-- Assign normal based on face direction
-- Assign color from block type
+### `ChunkMesh.build(float[][] heightmap, int lodLevel)`
 
-This runs on a worker thread as a `Job`. The resulting `MeshData` is passed to `ModelBuilder` on the GL thread.
+Returns `MeshData` (vertices, indices, normals, colors).
 
-### World Generation for Voxels
+**Vertices**: sample heightmap at LOD resolution steps. `vertex.y = heightmap[x][z]`.
 
-1. Generate a heightmap for the chunk column (same `HeightmapGenerator` as Track A)
-2. For each `(x, z)` column, fill blocks:
-   - `y > height`: Air
-   - `y == height`: Grass
-   - `y >= height - 3`: Dirt
-   - `y < height - 3`: Stone
-3. Optional: carve caves using 3D noise
-4. Optional: place water at `y < waterLevel`
+**Normals**: per-vertex normal computed by averaging the cross products of surrounding triangles. Smooth normals on terrain catch lighting well.
+
+**Colors (vertex color)**: assigned by biome + local variation:
+- Sample a small noise value per vertex for natural variation
+- Blend between two biome colors based on noise
+- Add slope-based darkening (steep faces are rockier/darker)
+- Snow blending above `alpineLine`
+
+No texture coordinates needed for basic terrain — vertex color carries all the visual information. This is cheaper and avoids tiling seams.
+
+### Water
+
+Water is a **separate flat mesh** at `y = seaLevel`. It is not part of the terrain chunk — it is a global plane clipped to loaded chunk area. The water shader handles reflections, animated ripples, and shore foam. Rendered in a separate pass after opaque terrain.
 
 ---
 
 ## Job System Integration
 
-Chunk generation is an ideal fit for the existing job system.
-
 ### Generation Job
 
 ```java
-class ChunkGenerationJob extends Job {
+class ChunkGenerateJob extends Job {
+    Chunk chunk;
+    CancelToken cancel;
+
+    void code() {
+        if (cancel.isCancelled()) return;
+        float[][] heightmap = heightmapGen.generate(chunk.cx, chunk.cz);
+        if (cancel.isCancelled()) return;
+        for (int lod = 0; lod < 5; lod++) {
+            chunk.meshData[lod] = ChunkMesh.build(heightmap, lod);
+            if (cancel.isCancelled()) return;
+        }
+        chunk.assetList = assetPlacer.place(chunk.cx, chunk.cz, heightmap, chunk.biome);
+        chunk.state = PENDING_UPLOAD;
+    }
+}
+```
+
+### Upload Job (GL thread only)
+
+```java
+class ChunkUploadJob extends Job {
     Chunk chunk;
 
-    @Override
     void code() {
-        // runs on worker thread
-        float[][] heightmap = world.heightmapGen.generate(chunk.cx, chunk.cz);
-        MeshData mesh = ChunkMesh.build(heightmap);
-        chunk.pendingMesh = mesh;
-        chunk.state = GENERATED;
-    }
-
-    @Override
-    void postCode() {
-        // runs after code() completes, back on render thread
-        chunk.model = ModelBuilder.buildModel(chunk.pendingMesh);
-        chunk.entity = new Entity(chunk.model, chunk.transform);
+        // Runs on render thread (GL context required)
+        for (int lod = 0; lod < 5; lod++) {
+            chunk.models[lod] = ModelBuilder.buildModel(chunk.meshData[lod]);
+        }
+        chunk.meshData = null; // free CPU-side arrays
         chunk.state = LOADED;
     }
 }
 ```
 
-`postCode()` already exists in the `Job` class for exactly this pattern — do CPU work in `code()`, finalize on the main/render thread in `postCode()`.
+### Priority Tiers
 
-### Parallelism
+Generation jobs are assigned priority based on distance:
+- `PRIORITY_HIGH`: 0–4 chunks (visible near-field, generate immediately)
+- `PRIORITY_NORMAL`: 4–8 chunks (load-ahead)
+- `PRIORITY_LOW`: 8–12 chunks (prefetch)
+- `PRIORITY_IDLE`: predictive look-ahead
 
-Multiple chunks can generate simultaneously since they are independent. The work-stealing pool will naturally distribute them across threads. A generation radius of 5 chunks means up to 100 chunks could generate in parallel when first loading a scene.
-
----
-
-## Rendering
-
-### Per-Chunk Entity
-
-Each loaded chunk is a `Model` wrapped in an `Entity`. The entity's `Transform` positions it at `(cx * CHUNK_SIZE, 0, cz * CHUNK_SIZE)` in world space. The existing renderer draws it like any other entity.
-
-### Level of Detail (LOD) — Future
-
-Distant chunks can use lower-resolution meshes:
-- `LOD_0`: Full resolution (nearby)
-- `LOD_1`: Half resolution (mid distance)
-- `LOD_2`: Quarter resolution (far)
-
-Not needed for initial implementation.
-
-### Terrain Shader
-
-The existing `StaticShader` works for terrain but a dedicated `TerrainShader` could add:
-- Multi-texture blending by height/slope
-- Fog based on distance
-- Better normal handling for flat terrain faces
+→ See [job-system.md](job-system.md) for how priority is implemented.
 
 ---
 
 ## Open Questions
 
-- [ ] Chunk size: 16 (Minecraft default) or 32? Affects generation cost vs. draw call count.
-- [ ] Load/unload radius: how many chunks in each direction? (3 = 7x7 = 49 chunks)
-- [ ] Heightmap track only, voxel track only, or both? (Both share most infrastructure)
-- [ ] Greedy meshing for voxels: necessary for performance or premature optimization?
-- [ ] Water: transparent plane above voxel water blocks? Separate render pass?
-- [ ] Infinite world or bounded map?
-- [ ] Should caves be in scope for initial version?
+- [ ] Chunk size: 64 feels right for flight speed — confirm with playtesting
+- [ ] How many LOD levels to pre-generate vs. generate on demand?
+- [ ] Seam handling at chunk edges for different LOD levels — need T-junction fix or rely on haze?
+- [ ] Cave systems? (underground, not visible while flying — probably out of scope initially)
+- [ ] Rivers? (follow low-altitude noise valleys, special water shader)
+- [ ] Biome blending at borders? (currently hard cutoff — noise-based gradient is better)

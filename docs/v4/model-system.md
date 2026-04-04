@@ -2,15 +2,13 @@
 
 ## Problem with v3
 
-`testscene.java` manages a single model by holding a `Model` reference and manually building its matrix every frame. Scaling this to hundreds of objects means duplicating that matrix logic everywhere. There is no concept of "an object in the world with a position."
+`testscene.java` manages a single model by holding a `Model` reference and manually building its matrix every frame. A world with thousands of trees, rocks, and terrain chunks cannot work this way — there is no concept of "an object in the world with a position."
 
 ---
 
-## Core Additions
+## `Transform`
 
-### `Transform`
-
-A `Transform` owns the spatial state of one object: position, rotation, scale. It computes a model matrix on demand.
+Owns the spatial state of one object: position, rotation (quaternion), scale. Computes a model matrix on demand.
 
 ```java
 class Transform {
@@ -18,117 +16,141 @@ class Transform {
     Quaternion rotation;
     Vec3f scale;           // (1, 1, 1) by default
 
-    Mat4f toMatrix();      // compose scale → rotate → translate
+    Mat4f toMatrix();      // scale → rotate → translate
     void translate(Vec3f delta);
     void rotate(Quaternion delta);
 }
 ```
 
-This replaces the matrix assembly that currently lives scattered across scene `update()` jobs. The matrix composition logic already exists in `JobModule.matrixWork` — `Transform.toMatrix()` is essentially that, packaged per-object.
+The matrix composition logic already exists in `JobModule.matrixWork` — `Transform.toMatrix()` extracts and packages it per-object.
 
 ---
 
-### `Entity`
+## `Entity`
 
-An `Entity` pairs a `Model` (or `TexturedModel`) with a `Transform`. It is the basic "thing in the world."
+An `Entity` pairs a `Model` with a `Transform`. It is a unique object in the world — the bird, a landmark, a specific rock.
 
 ```java
 class Entity {
-    Model model;
+    Model model;         // or TexturedModel
     Transform transform;
-    // optional: String name, boolean visible, int renderLayer
+    boolean visible;
+    int renderLayer;     // 0=terrain, 1=opaque, 2=transparent, 3=overlay
 }
 ```
 
-Scenes build lists of `Entity` objects. The renderer iterates them, binding each one's matrix before the draw call. No other change to rendering logic needed — `Renderer` already handles `MatrixBinding` per draw call.
+Scenes hold `ArrayList<Entity>`. The renderer iterates them, binds each matrix, and draws. No change to the core rendering logic — `Renderer` already accepts `MatrixBinding` per draw.
 
 ---
 
-### `MeshBuilder`
+## `InstancedModel`
 
-A utility class for generating geometry programmatically. Produces the same `float[]` arrays that `ModelBuilder` already expects, so no changes to the GPU upload path.
-
-Planned generators:
-
-| Method | Output | Used for |
-|--------|--------|----------|
-| `plane(int w, int h, float scale)` | Flat grid mesh | Flat terrain testing |
-| `cube(float size)` | Unit cube | Voxel blocks, bounding box debug |
-| `sphere(int rings, int slices, float r)` | UV sphere | Props, debug shapes |
-| `terrainChunk(float[][] heightmap, float scale)` | Grid mesh with Y from heightmap | Terrain rendering |
-| `voxelChunk(byte[][][] blocks, ...)` | Face-culled block mesh | Voxel world |
-
-All methods return a `MeshData` record:
-
-```java
-record MeshData(float[] vertices, int[] indices, float[] normals, float[] colors) {}
-```
-
-This feeds directly into `ModelBuilder.buildModel(vertices, indices, colors, normals)`.
-
-Normals for terrain and voxels must be computed during mesh generation (cross product of triangle edges), not imported from an OBJ.
-
----
-
-## Instanced Rendering
-
-For objects that repeat many times (trees, grass tufts, rocks) instancing avoids one draw call per object.
-
-### How it works
-
-Instead of binding a different model matrix uniform for each draw call, OpenGL reads per-instance data from a second VBO bound to the same VAO. A single `glDrawElementsInstanced(count, instanceCount)` call renders all copies.
-
-### `InstancedModel`
+For objects that repeat — trees, rocks, grass tufts — instanced rendering sends one draw call with all per-instance transforms packed in a VBO. This is critical for a world with thousands of trees.
 
 ```java
 class InstancedModel {
     Model model;
-    int instanceVBO;       // VBO holding per-instance mat4 data
+    int instanceVBO;          // VBO holding per-instance mat4 data (4x vec4 = attrib 4-7)
     int instanceCount;
+    boolean dirty;            // true if instance data needs re-upload
 
-    void updateInstances(Mat4f[] transforms); // uploads to instanceVBO
-    void render();                            // glDrawElementsInstanced
+    void setInstances(Mat4f[] transforms);   // rebuilds instanceVBO
+    void addInstance(Mat4f transform);       // marks dirty
+    void uploadIfDirty();                    // called by renderer before draw
+    void render();                           // glDrawElementsInstanced
 }
 ```
 
-The instance VBO uses 4 consecutive `vec4` attributes (locations 4–7) to pass a full `mat4` per instance. The vertex shader reads them and uses them in place of the `m` uniform.
+The vertex shader reads instance transform from `layout(location = 4..7)` attributes (4 vec4s = 1 mat4). A `#define INSTANCED` toggle in the shader handles both instanced and non-instanced paths.
 
-This requires a second shader variant or a `#define` toggle in the existing shader.
+### Per-Asset-Type `InstancedModel`
 
-### When to use it
-
-| Use case | Approach |
-|----------|----------|
-| Unique objects (player, landmarks) | `Entity` with individual draw call |
-| Hundreds of trees | `InstancedModel` |
-| Terrain chunks | Individual `Entity` per chunk (each chunk is already one mesh) |
-| Grass | `InstancedModel`, generated per visible chunk |
+Each tree type and rock type has its own `InstancedModel`. When a chunk loads, its asset list (positions, rotations, scales) is appended to the appropriate `InstancedModel` buffer. When a chunk unloads, its instances are removed and the buffer is marked dirty.
 
 ---
 
-## How Scenes Use This
+## `Billboard`
 
-A v4 scene holds:
+Camera-facing quads for distant assets (trees and rocks beyond 8 chunks). Cheaper to render than even a low-poly mesh.
 
 ```java
-ArrayList<Entity> entities;         // unique/authored objects
-ArrayList<InstancedModel> instanced; // repeated objects
-World world;                        // chunk-based terrain (see world-generation.md)
+class Billboard {
+    int vao;               // simple quad VAO
+    int texture;           // pre-rendered or simple sprite texture
+    Vec3f worldPosition;
+    float size;
+}
 ```
 
-The `render()` job list:
-1. Render terrain chunks from `world`
-2. Render each entity (matrix per draw call)
-3. Render each `InstancedModel` (one call per type)
-4. Render flamegraph overlay (unchanged)
+Billboards are also instanced — one draw call per asset type at billboard distance. The billboard vertex shader orients the quad to always face the camera.
 
-The `update()` job list remains structurally unchanged — it can add entity transform update jobs alongside the existing `controls` and `matrixWork` jobs.
+---
+
+## `MeshBuilder`
+
+Utility for generating geometry at runtime. Returns `MeshData` records that feed directly into `ModelBuilder`.
+
+```java
+record MeshData(float[] vertices, int[] indices, float[] normals, float[] colors) {}
+record MeshDataUV(float[] vertices, int[] indices, float[] normals, float[] colors, float[] uvs) {}
+```
+
+Planned generators:
+
+| Method | Used for |
+|--------|----------|
+| `quad(float w, float h)` | Water plane, billboard, sky plane |
+| `cube(float size)` | Debug bounding boxes |
+| `terrainChunk(float[][] heightmap, int lod)` | Terrain mesh from heightmap |
+| `skydome(float radius, int segments)` | Sky geometry |
+
+The bird model and rocks are loaded via `OBJLoader` — `MeshBuilder` is only for procedural geometry.
+
+---
+
+## Render Layers and Order
+
+Rendering has a fixed order to handle transparency correctly:
+
+| Layer | Contents | Notes |
+|-------|----------|-------|
+| 0 | Sky (skydome or gradient quad) | No depth write |
+| 1 | Terrain chunks | Opaque, depth write |
+| 2 | Opaque entities (rocks, bird) | Opaque, depth write |
+| 3 | Instanced assets (trees, rocks) | Opaque, depth write |
+| 4 | Billboards (distant trees) | Alpha test |
+| 5 | Water | Transparent, blended |
+| 6 | Particles / atmospheric | Additive blend |
+| 7 | UI / flamegraph overlay | No depth test |
+
+The renderer iterates entities and instanced models sorted by layer.
+
+---
+
+## Flight Camera
+
+The camera in v4 is not the free-floating FPS camera from v3. It follows the bird with lag:
+
+```java
+class FlightCamera {
+    Vec3f targetPosition;     // bird position
+    Vec3f currentPosition;    // smoothly follows target
+    Quaternion targetRotation;
+    Quaternion currentRotation;
+    float lagFactor;           // how tightly camera follows (0=instant, 1=never)
+
+    void update(float dt);            // lerp toward target
+    Mat4f getViewMatrix();            // same quaternion→matrix as v3
+}
+```
+
+The existing quaternion view matrix generation is reused unchanged.
 
 ---
 
 ## Open Questions
 
-- [ ] Should `Transform` support parent-child hierarchy (scene graph), or stay flat?
-- [ ] Does `Entity` need a per-object update callback, or is the scene responsible for all logic?
-- [ ] Frustum culling: skip entities outside the view frustum. Add to `Entity` or `Renderer`?
-- [ ] Should `InstancedModel` instance data be updated every frame or only on change?
+- [ ] Does `Entity` need a hierarchy (parent-child transforms) or stay flat? Flat is simpler and the bird doesn't need it yet.
+- [ ] How is the instance buffer managed when many chunks load/unload simultaneously? Double-buffer to avoid GPU stalls?
+- [ ] Frustum culling: per-entity (easy) and per-chunk (needed). Where does this live — `Renderer` or `World`?
+- [ ] The bird model: OBJ is static. Wing animation needs either skeletal animation (complex) or a wind-style vertex shader (simpler — deform wings by speed).
