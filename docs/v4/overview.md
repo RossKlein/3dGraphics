@@ -16,7 +16,7 @@ Build a bird flight game: an open world aerial experience driven by procedural t
 | Quaternion camera | Keep. Replace with flight physics camera. |
 | Flamegraph profiler | Keep as-is. |
 | `ModelBuilder` (arrays → GPU) | Keep as the GPU upload layer. |
-| `OBJLoader` | Keep for prop loading (rocks, the bird model). |
+| `OBJLoader` | **Replaced** by `AssimpLoader`. Assimp handles OBJ, FBX, GLTF, and 40+ other formats with one API — and adds skeletal animation data. |
 | Phong lighting | Starting point. Extend to support dynamic sun direction. |
 | Render/Update thread separation | Keep as-is. |
 
@@ -82,13 +82,19 @@ Ross/
     models/
       Model.java               (unchanged)
       TexturedModel.java       (unchanged)
-      ModelBuilder.java        (unchanged)
-      OBJLoader.java           (unchanged)
+      ModelBuilder.java        (unchanged — extended for skinned meshes)
+      OBJLoader.java           (REMOVED — replaced by AssimpLoader)
+      AssimpLoader.java        (NEW — static and animated asset loading)
       Transform.java           (NEW)
-      Entity.java              (NEW)
-      MeshBuilder.java         (NEW — procedural geometry)
+      MeshBuilder.java         (NEW — procedural geometry: terrain, water, sky)
       InstancedModel.java      (NEW — one draw call, many transforms)
       Billboard.java           (NEW — camera-facing quad for distant assets)
+    animation/
+      Skeleton.java            (NEW — bone hierarchy, offset matrices)
+      AnimationClip.java       (NEW — keyframe data for one named animation)
+      AnimationController.java (NEW — per-instance playback, cross-fading)
+      SkeletonBuilder.java     (NEW — builds Skeleton from AssimpData)
+      AnimationClipBuilder.java (NEW — builds clips from AssimpData)
     scene/
       Scene.java               (unchanged)
       Utils.java               (extended)

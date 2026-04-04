@@ -10,7 +10,7 @@ world.add(new Prop("oak_tree.obj", t)); // automatically queues: load → upload
 world.add(new Bird(startPos));          // automatically queues: load → upload, then runs physics each frame
 ```
 
-The caller doesn't touch `JobModule`, `ModelBuilder`, or `OBJLoader`. Those are wiring.
+The caller doesn't touch `JobModule`, `ModelBuilder`, or `AssimpLoader`. Those are wiring.
 
 ---
 
@@ -179,11 +179,12 @@ class Prop extends GameObject {
         }
 
         state = State.LOADING;
-        OBJData[] raw = new OBJData[1];
+        MeshData[] raw = new MeshData[1];
 
         Job load = new Job(Priority.NORMAL) {
             void code() {
-                raw[0] = OBJLoader.load(modelPath);
+                // AssimpLoader replaces OBJLoader — handles OBJ, FBX, GLTF, etc.
+                raw[0] = AssimpLoader.loadStatic(modelPath);
             }
         };
 
@@ -508,7 +509,7 @@ class World {
 
 | Concern | Handled by |
 |---------|-----------|
-| Geometry source (OBJ file) | `OBJLoader` inside `Prop.onAdd()` job |
+| Geometry source (authored asset) | `AssimpLoader` inside `Prop.onAdd()` / `AnimatedEntity.onAdd()` job |
 | Geometry source (procedural) | `ChunkMesh` / `MeshBuilder` inside `TerrainChunk.onAdd()` job |
 | GPU upload | `ModelBuilder` inside GL-pinned job |
 | Asset caching | `ModelCache` — transparent to callers |
