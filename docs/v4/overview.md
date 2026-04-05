@@ -49,10 +49,15 @@ Sky gradient, atmospheric haze (distance fog), god rays, wind vertex shader, wat
 
 → See [shaders.md](shaders.md) *(to be written)*
 
-### 6. Job System — Priority + Cancellation
+### 6. Scene and Layer System
+Multiple layers active simultaneously, rendered in a fixed pipeline: world-space layers (terrain, sky, bird) render to an offscreen FBO, the post-process chain runs over it, then screen-space layers (HUD, menus) draw on top. Pause/resume is just toggling layer states.
+
+→ See [scene-system.md](scene-system.md)
+
+### 7. Job System — Priority + Cancellation
 The existing job scheduler sorts by duration but has no explicit priority levels and no way to cancel in-flight jobs. Flying fast means you can outrun your chunk generation. Needs: priority tiers, cancellation tokens, and a proper dependency graph.
 
-→ See [job-system.md](job-system.md) *(to be written)*
+→ See [job-system.md](job-system.md)
 
 ---
 
@@ -96,7 +101,12 @@ Ross/
       SkeletonBuilder.java     (NEW — builds Skeleton from AssimpData)
       AnimationClipBuilder.java (NEW — builds clips from AssimpData)
     scene/
-      Scene.java               (unchanged)
+      Layer.java               (NEW — replaces Scene interface)
+      LayerManager.java        (NEW — owns layer stack, drives render pipeline)
+      PostProcessChain.java    (NEW — world FBO → post passes → screen)
+      PostProcessPass.java     (NEW — one fullscreen shader pass)
+      GameState.java           (NEW — shared volatile state across layers)
+      Scenes.java              (NEW — push/pop sets of layers for each game state)
       Utils.java               (extended)
     world/
       World.java               (NEW — chunk map, lifecycle, streaming)
