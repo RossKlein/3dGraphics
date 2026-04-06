@@ -6,7 +6,7 @@
 class DefaultSystemInterface final : public Rml::SystemInterface {
 public:
     double GetElapsedTime() override;
-    void   LogMessage(Rml::Log::Type type, const Rml::String& message) override;
+    bool   LogMessage(Rml::Log::Type type, const Rml::String& message) override;
     void   SetMouseCursor(const Rml::String& cursor_name) override;
     void   SetClipboardText(const Rml::String& text) override;
     void   GetClipboardText(Rml::String& text) override;

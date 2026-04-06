@@ -28,6 +28,7 @@ add_library(rmlui_java SHARED
 
 target_include_directories(rmlui_java PRIVATE
     ${JNI_INCLUDE_DIRS}
+    extern/RmlUi/Include
     include/
 )
 

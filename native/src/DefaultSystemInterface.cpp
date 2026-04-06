@@ -9,7 +9,7 @@ double DefaultSystemInterface::GetElapsedTime() {
     return std::chrono::duration<double>(now - startTime).count();
 }
 
-void DefaultSystemInterface::LogMessage(Rml::Log::Type type, const Rml::String& message) {
+bool DefaultSystemInterface::LogMessage(Rml::Log::Type type, const Rml::String& message) {
     const char* prefix = "RmlUi";
     switch (type) {
         case Rml::Log::LT_ERROR:   prefix = "RmlUi ERROR"; break;
@@ -17,6 +17,7 @@ void DefaultSystemInterface::LogMessage(Rml::Log::Type type, const Rml::String& 
         default: break;
     }
     fprintf(stderr, "[%s] %s\n", prefix, message.c_str());
+    return true;
 }
 
 void DefaultSystemInterface::SetMouseCursor(const Rml::String& /*cursor_name*/) {

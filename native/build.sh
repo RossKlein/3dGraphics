@@ -8,7 +8,9 @@ BUILD_DIR="$SCRIPT_DIR/build-linux"
 
 echo "[rmlui-java] Configuring..."
 cmake -S "$SCRIPT_DIR" -B "$BUILD_DIR" \
-    -DCMAKE_BUILD_TYPE=Release
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_C_COMPILER=gcc \
+    -DCMAKE_CXX_COMPILER=g++
 
 echo "[rmlui-java] Building..."
 cmake --build "$BUILD_DIR" --parallel "$(nproc)"
