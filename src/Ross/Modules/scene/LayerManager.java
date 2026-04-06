@@ -8,6 +8,7 @@ import static org.lwjgl.opengl.GL33.*;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedList;
 import java.util.List;
 
 /**
@@ -32,7 +33,8 @@ import java.util.List;
  */
 public class LayerManager {
 
-    private final List<Layer> layers = new ArrayList<>();
+    private final List<Layer>    layers   = new ArrayList<>();
+    private final LinkedList<Job> pushJobs = new LinkedList<>(); // CPU init jobs from onPush()
 
     private Framebuffer      worldFBO;
     private ScreenTarget     screenTarget;
@@ -48,7 +50,20 @@ public class LayerManager {
     public List<Job> push(Layer layer, JobModule jobs) {
         layers.add(layer);
         layers.sort(Comparator.comparingInt(Layer::getOrder));
-        return layer.onPush(jobs);
+        List<Job> initJobs = layer.onPush(jobs);
+        pushJobs.addAll(initJobs);   // queued for start(LayerManager) to run
+        return initJobs;
+    }
+
+    /**
+     * Drain and return all CPU-only jobs collected from {@link Layer#onPush} calls.
+     * Called once by {@link Ross.Modules.JobModule#start(LayerManager)} before
+     * the render loop starts, so asset parsing completes before the first frame.
+     */
+    public LinkedList<Job> drainPushJobs() {
+        LinkedList<Job> snapshot = new LinkedList<>(pushJobs);
+        pushJobs.clear();
+        return snapshot;
     }
 
     /** Remove a layer by reference. */
