@@ -334,26 +334,8 @@ public class JobModule {
                 renderQueue.assign(job);
         }
         LinkedList<Job> queue = renderQueue.frameCall();
-        AtomicInteger jobsInFlight = new AtomicInteger(queue.size());
-        CountDownLatch latch = new CountDownLatch(1);
-
         for (Job job : queue) {
-            pool.submit(() -> {
-                try {
-                    job.asRunnable(renderQueue).run();
-                } finally {
-                    if (jobsInFlight.decrementAndGet() == 0) {
-                        latch.countDown(); // All jobs (and subtasks) complete
-                    }
-                }
-            });
-        }
-
-
-        try {
-            latch.await();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
+            job.asRunnable(renderQueue).run();
         }
         //all gpu Scene happen in render tasks
         //render tasks has gpu context

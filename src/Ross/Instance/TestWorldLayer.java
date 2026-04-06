@@ -31,6 +31,10 @@ public class TestWorldLayer extends BaseLayer {
 
     private JobModule jobs;
     private Model     teapot;
+    private float[]   pendingVerts;
+    private int[]     pendingIndices;
+    private float[]   pendingColors;
+    private float[]   pendingNormals;
 
     // Model matrix — written by update job, read by render() on GL thread.
     private volatile Mat4f modelMatrix = new Mat4f().identity();
@@ -47,24 +51,25 @@ public class TestWorldLayer extends BaseLayer {
     public List<Job> onPush(JobModule jobs) {
         this.jobs = jobs;
 
-        // Load synchronously — onPush() is called before the render loop starts,
-        // so this runs on the main thread. OBJloader is CPU-only (no GL calls).
+        // Load CPU-side data in onPush(). GL resource creation is deferred
+        // until render() so it always runs with the current GL context.
         OBJloader  obj      = new OBJloader("res/test/utah-teapot.obj");
         OBJobject  objModel = obj.returnOBJobject();
-        ModelBuilder builder = new ModelBuilder();
 
-        float[] verts   = objModel.getVertices();
-        int[]   indices = objModel.getIndices();
-        float[] colors  = obj.genColor(new Vec4f(0.2f, 0.7f, 0.3f, 1f)); // green teapot
-        float[] normals = objModel.getNormals();
-
-        teapot = builder.buildModel(verts, indices, colors, normals);
+        pendingVerts   = objModel.getVertices();
+        pendingIndices = objModel.getIndices();
+        pendingColors  = obj.genColor(new Vec4f(0.2f, 0.7f, 0.3f, 1f)); // green teapot
+        pendingNormals = objModel.getNormals();
         return Collections.emptyList();
     }
 
     @Override
     public List<Job> onPop(JobModule jobs) {
         if (teapot != null) { teapot.dispose(); teapot = null; }
+        pendingVerts = null;
+        pendingIndices = null;
+        pendingColors = null;
+        pendingNormals = null;
         return Collections.emptyList();
     }
 
@@ -91,6 +96,15 @@ public class TestWorldLayer extends BaseLayer {
 
     @Override
     public List<Job> render(JobModule jobs, RenderTarget target, double deltaTime) {
+        if (teapot == null && pendingVerts != null) {
+            ModelBuilder builder = new ModelBuilder();
+            teapot = builder.buildModel(pendingVerts, pendingIndices, pendingColors, pendingNormals);
+            pendingVerts = null;
+            pendingIndices = null;
+            pendingColors = null;
+            pendingNormals = null;
+        }
+
         if (teapot == null) return Collections.emptyList();
 
         // Copy mouse delta → rotation inputs consumed by JobModule.controls.
