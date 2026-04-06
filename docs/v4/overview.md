@@ -54,7 +54,13 @@ Multiple layers active simultaneously, rendered in a fixed pipeline: world-space
 
 → See [scene-system.md](scene-system.md)
 
-### 7. Job System — Priority + Cancellation
+### 7. Physics — Bullet + Air Physics
+
+Bullet Physics (via LWJGL bindings) handles all collision geometry: terrain heightfields, props, and bird intersection tests. Custom `AirPhysics` drives the bird's movement via force integration (lift, drag, thrust, thermals) and uses Bullet sweep tests for collision response. `PhysicsWorld` is a shared object passed to any layer that needs it — same pattern as `GameState`.
+
+→ See [flight-physics.md](flight-physics.md)
+
+### 8. Job System — Priority + Cancellation
 The existing job scheduler sorts by duration but has no explicit priority levels and no way to cancel in-flight jobs. Flying fast means you can outrun your chunk generation. Needs: priority tiers, cancellation tokens, and a proper dependency graph.
 
 → See [job-system.md](job-system.md)
@@ -116,9 +122,15 @@ Ross/
       BiomeMap.java            (NEW — height + humidity → biome)
       AssetPlacer.java         (NEW — procedural prop placement per chunk)
       LODSelector.java         (NEW — distance → LOD level)
+    physics/
+      PhysicsWorld.java        (NEW — Bullet dynamics world, sweep tests, body lifecycle)
+      CollisionGroups.java     (NEW — bit flags: TERRAIN, PROP, BIRD, WATER)
+      TerrainBodyBuilder.java  (NEW — heightfield shape → btRigidBody per chunk)
     flight/
-      FlightPhysics.java       (NEW — bank/pitch/speed/thermals)
+      AirPhysics.java          (NEW — force integration: lift/drag/thrust/thermals)
+      FlightController.java    (NEW — input → AirPhysics)
       FlightCamera.java        (NEW — follows bird, lag, tilt)
+      Thermal.java             (NEW — thermal column data per terrain area)
 ```
 
 ---
