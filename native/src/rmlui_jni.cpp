@@ -12,9 +12,16 @@
 // Global state (one RmlUi context per engine)
 // ---------------------------------------------------------------------------
 
+static JavaVM*                 g_vm              = nullptr;
 static DefaultSystemInterface* g_systemInterface = nullptr;
 static HeapRenderInterface*    g_renderInterface = nullptr;
 static Rml::Context*           g_context         = nullptr;
+
+// Capture the JavaVM on library load — needed for GenerateTexture callback.
+JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM* vm, void* /*reserved*/) {
+    g_vm = vm;
+    return JNI_VERSION_1_8;
+}
 
 // ---------------------------------------------------------------------------
 // Init / Shutdown
@@ -44,7 +51,8 @@ Java_Ross_Modules_ui_RmlUi_nInit(
     g_renderInterface = new HeapRenderInterface(
         cmdBuf, cmdCount,
         geomBuf, geomOffset, geomPending,
-        relBuf, relCount);
+        relBuf, relCount,
+        g_vm, self);
 
     Rml::SetSystemInterface(g_systemInterface);
     Rml::SetRenderInterface(g_renderInterface);
@@ -214,4 +222,20 @@ Java_Ross_Modules_ui_RmlUi_nTextInput(
 {
     if (g_context)
         g_context->ProcessTextInput(static_cast<Rml::Character>(codepoint));
+}
+
+// ---------------------------------------------------------------------------
+// Texture registration — call before loading documents that reference images
+// ---------------------------------------------------------------------------
+
+extern "C" JNIEXPORT void JNICALL
+Java_Ross_Modules_ui_RmlUi_nRegisterTexture(
+    JNIEnv* env, jobject /*self*/, jstring jPath, jint glTextureId)
+{
+    if (!g_renderInterface) return;
+    const char* path = env->GetStringUTFChars(jPath, nullptr);
+    g_renderInterface->registerTexture(
+        std::string(path),
+        static_cast<Rml::TextureHandle>(glTextureId));
+    env->ReleaseStringUTFChars(jPath, path);
 }

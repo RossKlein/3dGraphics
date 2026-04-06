@@ -2,24 +2,58 @@
 #include <cstring>
 #include <cassert>
 
+// Verify our assumed Rml::Vertex layout at compile time.
+// If this fails, adjust VERTEX_STRIDE and the VAO attribute offsets in Java.
+static_assert(sizeof(Rml::Vertex) == 20,
+    "Rml::Vertex is not 20 bytes — update VERTEX_STRIDE in rmlui_java.h and RmlUi.java");
+static_assert(offsetof(Rml::Vertex, position)  == 0,  "Vertex.position offset changed");
+static_assert(offsetof(Rml::Vertex, colour)    == 8,  "Vertex.colour offset changed");
+static_assert(offsetof(Rml::Vertex, tex_coord) == 12, "Vertex.tex_coord offset changed");
+
+// ---------------------------------------------------------------------------
+
 HeapRenderInterface::HeapRenderInterface(
     RmlCommand* commandBuf,  int32_t* commandCount,
     uint8_t*    geomBuf,     int32_t* geomBufOffset, int32_t* geomPending,
-    int32_t*    releaseBuf,  int32_t* releaseCount)
+    int32_t*    releaseBuf,  int32_t* releaseCount,
+    JavaVM* vm, jobject javaObj)
     : cmdBuf(commandBuf),   cmdCount(commandCount)
     , geomBuf(geomBuf),     geomBufOffset(geomBufOffset), geomPending(geomPending)
     , relBuf(releaseBuf),   relCount(releaseCount)
+    , vm(vm)
 {
     *cmdCount      = 0;
     *geomBufOffset = 0;
     *geomPending   = 0;
     *relCount      = 0;
+
+    JNIEnv* env = nullptr;
+    if (vm->GetEnv(reinterpret_cast<void**>(&env), JNI_VERSION_1_8) == JNI_OK) {
+        javaObjGlobalRef = env->NewGlobalRef(javaObj);
+        jclass cls = env->GetObjectClass(javaObj);
+        generateTextureMethod = env->GetMethodID(cls, "nGenerateTextureCallback",
+            "([BII)I");
+    }
+}
+
+HeapRenderInterface::~HeapRenderInterface() {
+    JNIEnv* env = nullptr;
+    if (vm && vm->GetEnv(reinterpret_cast<void**>(&env), JNI_VERSION_1_8) == JNI_OK) {
+        env->DeleteGlobalRef(javaObjGlobalRef);
+    }
 }
 
 void HeapRenderInterface::BeginFrame() {
     *cmdCount = 0;
-    // Note: geomBuf is NOT reset here — Java resets it after uploading VAOs.
-    // relBuf  is NOT reset here — Java resets it after freeing VAOs.
+    // geomBuf and relBuf are reset by Java after it processes them.
+}
+
+// ---------------------------------------------------------------------------
+// Texture registry
+// ---------------------------------------------------------------------------
+
+void HeapRenderInterface::registerTexture(const std::string& path, Rml::TextureHandle handle) {
+    textureRegistry[path] = handle;
 }
 
 // ---------------------------------------------------------------------------
@@ -35,27 +69,20 @@ Rml::CompiledGeometryHandle HeapRenderInterface::CompileGeometry(
     const int32_t indexBytes  = (int32_t)indices.size()  * sizeof(int32_t);
     const int32_t totalBytes  = (int32_t)sizeof(GeometryHeader) + vertexBytes + indexBytes;
 
-    // Check we have room
     if (*geomBufOffset + totalBytes > GEOM_BUFFER_BYTES) {
-        // Buffer full — this is a configuration issue; log and skip.
+        fprintf(stderr, "[RmlUi] Geometry buffer full — increase GEOM_BUFFER_BYTES\n");
         return 0;
     }
 
     uint8_t* dst = geomBuf + *geomBufOffset;
 
-    // Write header
-    GeometryHeader hdr;
-    hdr.geometryId  = id;
-    hdr.vertexCount = (int32_t)vertices.size();
-    hdr.indexCount  = (int32_t)indices.size();
+    GeometryHeader hdr{ id, (int32_t)vertices.size(), (int32_t)indices.size() };
     memcpy(dst, &hdr, sizeof(GeometryHeader));
     dst += sizeof(GeometryHeader);
 
-    // Write raw vertex data (Rml::Vertex is 20 bytes, matches Java VAO layout)
     memcpy(dst, vertices.data(), vertexBytes);
     dst += vertexBytes;
 
-    // Write index data (RmlUi uses int, same as GL_UNSIGNED_INT)
     memcpy(dst, indices.data(), indexBytes);
 
     *geomBufOffset += totalBytes;
@@ -69,19 +96,23 @@ void HeapRenderInterface::RenderGeometry(
     Rml::Vector2f               translation,
     Rml::TextureHandle          texture)
 {
-    float texHandle;
-    memcpy(&texHandle, &texture, sizeof(float));   // reinterpret handle as float
-    pushCommand(CMD_DRAW,
-        static_cast<float>(reinterpret_cast<intptr_t>(reinterpret_cast<void*>(geometry))),
-        translation.x,
-        translation.y,
-        texHandle);
+    // Encode geometry ID as float bits so it fits in the command's float array.
+    auto geomId = static_cast<int32_t>(reinterpret_cast<intptr_t>(
+        reinterpret_cast<void*>(geometry)));
+    auto texId  = static_cast<int32_t>(reinterpret_cast<intptr_t>(
+        reinterpret_cast<void*>(texture)));
+
+    float geomF, texF;
+    memcpy(&geomF, &geomId, 4);
+    memcpy(&texF,  &texId,  4);
+
+    pushCommand(CMD_DRAW, geomF, translation.x, translation.y, texF);
 }
 
 void HeapRenderInterface::ReleaseGeometry(Rml::CompiledGeometryHandle geometry) {
     if (*relCount < MAX_RELEASES) {
-        relBuf[(*relCount)++] =
-            static_cast<int32_t>(reinterpret_cast<intptr_t>(reinterpret_cast<void*>(geometry)));
+        relBuf[(*relCount)++] = static_cast<int32_t>(
+            reinterpret_cast<intptr_t>(reinterpret_cast<void*>(geometry)));
     }
 }
 
@@ -90,49 +121,72 @@ void HeapRenderInterface::ReleaseGeometry(Rml::CompiledGeometryHandle geometry) 
 // ---------------------------------------------------------------------------
 
 void HeapRenderInterface::EnableScissorRegion(bool enable) {
-    if (enable) {
-        // Region will follow immediately via SetScissorRegion
-    } else {
+    if (!enable)
         pushCommand(CMD_SCISSOR_OFF, 0, 0, 0, 0);
-    }
 }
 
 void HeapRenderInterface::SetScissorRegion(Rml::Rectanglei region) {
-    // Store ints as floats — Java casts them back with Float.floatToRawIntBits
-    float x = *reinterpret_cast<const float*>(&region.Left());
-    float y = *reinterpret_cast<const float*>(&region.Top());
-    int32_t w = region.Width();
-    int32_t h = region.Height();
-    float wf = *reinterpret_cast<const float*>(&w);
-    float hf = *reinterpret_cast<const float*>(&h);
-    pushCommand(CMD_SCISSOR_ON, x, y, wf, hf);
+    // Store ints as float bits — Java reconstructs with Float.floatToRawIntBits
+    int32_t x = region.Left(),  y = region.Top();
+    int32_t w = region.Width(), h = region.Height();
+    float xf, yf, wf, hf;
+    memcpy(&xf, &x, 4); memcpy(&yf, &y, 4);
+    memcpy(&wf, &w, 4); memcpy(&hf, &h, 4);
+    pushCommand(CMD_SCISSOR_ON, xf, yf, wf, hf);
 }
 
 // ---------------------------------------------------------------------------
-// Textures — Java owns GL texture creation, so we just return stubs.
-// Java registers textures by calling nRegisterTexture(path, glTextureId).
+// Textures
 // ---------------------------------------------------------------------------
 
 Rml::TextureHandle HeapRenderInterface::LoadTexture(
     Rml::Vector2i&     /*texture_dimensions*/,
-    const Rml::String& /*source*/)
+    const Rml::String& source)
 {
-    // Java-side texture loading: Java pre-registers textures before loading
-    // documents. Return 0 for now; full implementation routes through JNI callback.
+    auto it = textureRegistry.find(std::string(source.c_str()));
+    if (it != textureRegistry.end())
+        return it->second;
+
+    fprintf(stderr, "[RmlUi] LoadTexture: '%s' not pre-registered — call registerTexture() first\n",
+        source.c_str());
     return 0;
 }
 
 Rml::TextureHandle HeapRenderInterface::GenerateTexture(
-    Rml::Span<const Rml::byte> /*source_data*/,
-    Rml::Vector2i              /*source_dimensions*/)
+    Rml::Span<const Rml::byte> source_data,
+    Rml::Vector2i              source_dimensions)
 {
-    return 0;
+    // This is called for font atlases — infrequent, safe to use JNI callback.
+    if (!vm || !generateTextureMethod) return 0;
+
+    JNIEnv* env = nullptr;
+    bool detach = false;
+    int status = vm->GetEnv(reinterpret_cast<void**>(&env), JNI_VERSION_1_8);
+    if (status == JNI_EDETACHED) {
+        vm->AttachCurrentThread(reinterpret_cast<void**>(&env), nullptr);
+        detach = true;
+    }
+    if (!env) return 0;
+
+    int byteCount = (int)source_data.size();
+    jbyteArray jPixels = env->NewByteArray(byteCount);
+    env->SetByteArrayRegion(jPixels, 0, byteCount,
+        reinterpret_cast<const jbyte*>(source_data.data()));
+
+    jint glTexId = env->CallIntMethod(
+        javaObjGlobalRef, generateTextureMethod,
+        jPixels, source_dimensions.x, source_dimensions.y);
+
+    env->DeleteLocalRef(jPixels);
+    if (detach) vm->DetachCurrentThread();
+
+    return static_cast<Rml::TextureHandle>(glTexId);
 }
 
-void HeapRenderInterface::ReleaseTexture(Rml::TextureHandle /*texture_handle*/) {}
+void HeapRenderInterface::ReleaseTexture(Rml::TextureHandle /*handle*/) {
+    // TODO: notify Java to delete GL texture if it was generated (not pre-registered)
+}
 
-// ---------------------------------------------------------------------------
-// Helpers
 // ---------------------------------------------------------------------------
 
 void HeapRenderInterface::pushCommand(
@@ -141,9 +195,6 @@ void HeapRenderInterface::pushCommand(
     if (*cmdCount >= MAX_COMMANDS) return;
     RmlCommand& cmd = cmdBuf[*cmdCount];
     cmd.type = static_cast<int32_t>(type);
-    cmd.d[0] = d0;
-    cmd.d[1] = d1;
-    cmd.d[2] = d2;
-    cmd.d[3] = d3;
+    cmd.d[0] = d0; cmd.d[1] = d1; cmd.d[2] = d2; cmd.d[3] = d3;
     (*cmdCount)++;
 }
