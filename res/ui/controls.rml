@@ -4,65 +4,65 @@
     <style>
         body {
             font-family: Roboto;
-            font-size: 14px;
+            font-size: 14dp;
             color: #ffffff;
         }
 
         /* ---- Controls panel (top-left) ---- */
         #controls-panel {
             position: absolute;
-            top: 14px;
-            left: 14px;
+            top: 14dp;
+            left: 14dp;
             background-color: rgba(0, 0, 0, 0.55);
-            padding: 10px 14px 12px 14px;
-            border-radius: 6px;
+            padding: 10dp 14dp 12dp 14dp;
+            border-radius: 6dp;
         }
 
         #controls-panel .title {
-            font-size: 12px;
+            font-size: 12dp;
             color: #888888;
-            letter-spacing: 1px;
-            margin-bottom: 8px;
+            letter-spacing: 1dp;
+            margin-bottom: 8dp;
         }
 
         .row {
             display: flex;
-            margin-bottom: 4px;
+            margin-bottom: 4dp;
         }
 
         .key {
             color: #ffcc44;
-            font-size: 13px;
-            width: 130px;
-            min-width: 130px;
+            font-size: 13dp;
+            width: 130dp;
+            min-width: 130dp;
         }
 
         .desc {
             color: #cccccc;
-            font-size: 13px;
+            font-size: 13dp;
         }
 
         .separator {
-            height: 1px;
+            height: 1dp;
             background-color: rgba(255, 255, 255, 0.12);
-            margin: 6px 0;
+            margin: 6dp 0;
         }
 
         /* ---- Live info panel (bottom-right) ---- */
         #live-panel {
             position: absolute;
-            bottom: 14px;
-            right: 14px;
+            bottom: 14dp;
+            right: 14dp;
             background-color: rgba(0, 0, 0, 0.55);
-            padding: 10px 14px;
-            border-radius: 6px;
+            padding: 10dp 14dp;
+            border-radius: 6dp;
             text-align: right;
         }
 
         #live-panel .stat {
-            font-size: 13px;
+            font-size: 13dp;
             color: #aaaaaa;
-            margin-bottom: 3px;
+            margin-bottom: 3dp;
         }
 
         #live-panel .stat span {

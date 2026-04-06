@@ -4,6 +4,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.HashMap;
 import java.util.Map;
+import org.lwjgl.system.MemoryUtil;
 
 import static org.lwjgl.opengl.GL33.*;
 
@@ -216,16 +217,48 @@ public class RmlUi {
      */
     @SuppressWarnings("unused") // called via JNI
     private int nGenerateTextureCallback(byte[] pixels, int width, int height) {
-        int texId = glGenTextures();
-        glBindTexture(GL_TEXTURE_2D, texId);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8,
-                     width, height, 0,
-                     GL_RGBA, GL_UNSIGNED_BYTE,
-                     java.nio.ByteBuffer.wrap(pixels));
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glBindTexture(GL_TEXTURE_2D, 0);
-        return texId;
+        if (pixels == null || width <= 0 || height <= 0) {
+            System.err.println("[RmlUi] GenerateTexture received invalid dimensions/data.");
+            return 0;
+        }
+
+        int expectedBytes = width * height * 4;
+        if (pixels.length < expectedBytes) {
+            System.err.println("[RmlUi] GenerateTexture buffer too small: got " +
+                               pixels.length + ", expected at least " + expectedBytes + ".");
+            return 0;
+        }
+
+        int prevUnpackBuffer = glGetInteger(GL_PIXEL_UNPACK_BUFFER_BINDING);
+        int prevUnpackAlign  = glGetInteger(GL_UNPACK_ALIGNMENT);
+        ByteBuffer directPixels = null;
+
+        // Ensure raw CPU pointer uploads are interpreted correctly.
+        glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+
+        try {
+            // Use a direct buffer for LWJGL native upload calls.
+            directPixels = MemoryUtil.memAlloc(expectedBytes);
+            directPixels.put(pixels, 0, expectedBytes).flip();
+
+            int texId = glGenTextures();
+            glBindTexture(GL_TEXTURE_2D, texId);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8,
+                         width, height, 0,
+                         GL_RGBA, GL_UNSIGNED_BYTE,
+                         directPixels);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            glBindTexture(GL_TEXTURE_2D, 0);
+            return texId;
+        } finally {
+            if (directPixels != null) {
+                MemoryUtil.memFree(directPixels);
+            }
+            glPixelStorei(GL_UNPACK_ALIGNMENT, prevUnpackAlign);
+            glBindBuffer(GL_PIXEL_UNPACK_BUFFER, prevUnpackBuffer);
+        }
     }
 
     // ---- Input (pass-through to C++) ---------------------------------------

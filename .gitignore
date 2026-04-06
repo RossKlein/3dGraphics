@@ -1,3 +1,6 @@
 RossGraphicsEngine.7z
-out
+out/*
 *.iml
+*.log
+*.class
+20250408_004_OUTPUT_LOD04

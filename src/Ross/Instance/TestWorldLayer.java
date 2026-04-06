@@ -25,7 +25,7 @@ import java.util.List;
  *               subsequent calls just draw
  *
  * This is the required pattern for all layers that own GL resources.
- * Never call glGen*/glBuffer*/etc. in onPush() or update() — the GL context
+ * Never call glGen*glBuffer*etc. in onPush() or update() — the GL context
  * does not exist when those run.
  */
 public class TestWorldLayer extends BaseLayer {

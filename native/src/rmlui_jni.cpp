@@ -401,7 +401,9 @@ Java_Ross_Modules_ui_RmlUi_nCreateDataModel(
     }
 
     for (const auto& varName : stringVarNames) {
-        state.storage.push_back(ModelVar{ .isText = true });
+        ModelVar textVar;
+        textVar.isText = true;
+        state.storage.push_back(textVar);
         ModelVar* var = &state.storage.back();
         state.index[varName] = var;
         ctor.BindFunc(varName,
