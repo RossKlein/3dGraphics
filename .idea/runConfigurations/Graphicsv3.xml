@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Graphicsv3" type="Application" factoryName="Application">
+
+    <option name="MAIN_CLASS_NAME" value="Ross.Instance.Main" />
+    <module name="Graphicsv3" />
+
+    <!--
+      natives/ contains:
+        - LWJGL platform libs (already there)
+        - librmlui_java.so / rmlui_java.dll (output of native/build.sh)
+      Both are picked up by System.loadLibrary() from this path.
+    -->
+    <option name="VM_PARAMETERS" value="-Djava.library.path=$PROJECT_DIR$/natives" />
+    <option name="WORKING_DIRECTORY" value="file://$PROJECT_DIR$" />
+
+    <method v="2">
+      <!--
+        "Make" compiles the Java sources before launch.
+        The native C++ library (librmlui_java.so / rmlui_java.dll) must be
+        built separately — see "Before launch" setup below.
+
+        TO ADD THE NATIVE BUILD STEP:
+          1. Open Run > Edit Configurations > Graphicsv3
+          2. In "Before launch", click + > Run External Tool
+          3. Click + to add a new tool:
+
+             Linux / macOS:
+               Name:              Build Native (Linux)
+               Program:           /bin/bash
+               Arguments:         $ProjectFileDir$/native/build.sh
+               Working directory: $ProjectFileDir$
+
+             Windows:
+               Name:              Build Native (Windows)
+               Program:           cmd.exe
+               Arguments:         /c $ProjectFileDir$\native\build.bat
+               Working directory: $ProjectFileDir$
+
+          4. Save. Now every Run/Debug will rebuild the native lib first.
+             The first build takes longer (compiles RmlUi); subsequent builds
+             are fast (CMake only recompiles changed files).
+      -->
+      <option name="Make" enabled="true" />
+    </method>
+
+  </configuration>
+</component>
