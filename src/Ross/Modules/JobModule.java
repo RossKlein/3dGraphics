@@ -156,6 +156,28 @@ public class JobModule {
         fov = 70;  // default so matrixWork projection is valid from frame 1
 
         this.pool = engine.getPool(N_THREADS);
+
+        // Run all CPU-only onPush() jobs (file I/O, data parsing) and wait for
+        // them to finish before entering the render loop.  These jobs were
+        // returned by lm.push() calls in Main and collected by LayerManager.
+        // GL uploads happen lazily in each layer's first render() call instead.
+        LinkedList<Job> startJobs = lm.drainPushJobs();
+        if (!startJobs.isEmpty()) {
+            AtomicInteger inFlight = new AtomicInteger(startJobs.size());
+            CountDownLatch latch   = new CountDownLatch(1);
+            JobQueue startQueue    = new JobQueue(time);
+            for (Job job : startJobs) {
+                pool.submit(() -> {
+                    try {
+                        job.asRunnable(startQueue).run();
+                    } finally {
+                        if (inFlight.decrementAndGet() == 0) latch.countDown();
+                    }
+                });
+            }
+            try { latch.await(); } catch (InterruptedException e) { e.printStackTrace(); }
+        }
+
         Thread updateThread = new Thread(engine.updateLoop(this));
         updateThread.setName("updateThread");
         updateThread.setDaemon(true);

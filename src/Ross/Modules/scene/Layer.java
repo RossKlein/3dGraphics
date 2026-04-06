@@ -37,7 +37,17 @@ public interface Layer {
 
     /**
      * Called once by {@link LayerManager#push} when this layer is added to the stack.
-     * Return any initialization jobs (non-GL asset loading, etc.).
+     *
+     * <strong>No GL calls permitted here.</strong> push() is called before the GL
+     * context exists (layers are pushed in Main before start()). Use this for
+     * storing references and kicking off CPU-only work (file parsing, etc.).
+     *
+     * GL initialization (VAO/VBO creation, shader compilation, FBO setup) must be
+     * deferred to the first {@link #render} call, using a {@code boolean initialized}
+     * guard — the same pattern used by {@link LayerManager} and ControlsHudLayer.
+     *
+     * Return any CPU-only initialization jobs (asset file I/O, procedural data
+     * generation, etc.). These will be submitted to the thread pool.
      */
     List<Job> onPush(JobModule jobs);
 
