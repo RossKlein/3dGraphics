@@ -7,8 +7,7 @@ set SCRIPT_DIR=%~dp0
 set BUILD_DIR=%SCRIPT_DIR%build-windows
 
 echo [rmlui-java] Configuring...
-cmake -S "%SCRIPT_DIR%" -B "%BUILD_DIR%" ^
-    -DCMAKE_BUILD_TYPE=Release
+cmake -S "%SCRIPT_DIR%" -B "%BUILD_DIR%" -DCMAKE_BUILD_TYPE=Release
 
 echo [rmlui-java] Building...
 cmake --build "%BUILD_DIR%" --config Release --parallel
