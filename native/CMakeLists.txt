@@ -3,6 +3,7 @@ project(rmlui_java C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 # ---- JNI ----------------------------------------------------------------
 find_package(JNI REQUIRED)
