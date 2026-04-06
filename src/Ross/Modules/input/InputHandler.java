@@ -59,6 +59,13 @@ public class InputHandler {
     public static void setCursorPos(float x, float y){
         GLFW.glfwSetCursorPos(windowId, x, y);
     }
+    /** GLFW_CURSOR_DISABLED, GLFW_CURSOR_NORMAL, or GLFW_CURSOR_HIDDEN */
+    public void setCursorMode(int glfwCursorMode) {
+        if (windowId != 0) {
+            GLFW.glfwSetInputMode(windowId, GLFW.GLFW_CURSOR, glfwCursorMode);
+        }
+    }
+
     public void registerInputHandler(long windowId) {
         this.windowId = windowId;
 

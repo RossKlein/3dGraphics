@@ -17,6 +17,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.*;
+import java.util.function.BiConsumer;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class JobModule {
@@ -49,6 +50,36 @@ public class JobModule {
 
     Scene        currentScene  = null;
     LayerManager layerManager = null;
+
+    /** When true, gameplay movement (controls job) and camera mouse look are frozen; UI may use mouse. */
+    public volatile boolean paused = false;
+
+    /** Optional: e.g. RmlUi {@code setDimensions} when the framebuffer size changes (GL thread). */
+    private BiConsumer<Integer, Integer> framebufferResizeHandler;
+
+    public void setPaused(boolean paused) {
+        this.paused = paused;
+    }
+
+    public void setFramebufferResizeHandler(BiConsumer<Integer, Integer> handler) {
+        this.framebufferResizeHandler = handler;
+    }
+
+    /**
+     * Called from the GLFW framebuffer-size callback (typically during {@code glfwPollEvents}
+     * on the render thread). Updates {@link LayerManager} offscreen targets and notifies UI.
+     */
+    public void onFramebufferResized(int width, int height) {
+        if (width <= 0 || height <= 0) {
+            return;
+        }
+        if (layerManager != null) {
+            layerManager.resize(width, height);
+        }
+        if (framebufferResizeHandler != null) {
+            framebufferResizeHandler.accept(width, height);
+        }
+    }
 
     //test
     public Renderer renderer;
@@ -196,6 +227,9 @@ public class JobModule {
 
         @Override
         public void code() {
+            if (paused) {
+                return;
+            }
 
             zrotate /= 2;
             yrotate /= 2;
@@ -341,7 +375,7 @@ public class JobModule {
     public void renderJobs(double deltaTime) {
         JobProfiler.markFrame("FRAME START", System.nanoTime(), "Frame");
 
-
+        utils.setGameInputEnabled(!paused);
         utils.updateInput();
 
 

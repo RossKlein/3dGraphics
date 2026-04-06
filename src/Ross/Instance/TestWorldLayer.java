@@ -119,7 +119,7 @@ public class TestWorldLayer extends BaseLayer {
         if (!glReady) return Collections.emptyList(); // still parsing
 
         // Mirror mouse delta → rotation inputs read by JobModule.controls.
-        if (jobs.getUtils() != null) {
+        if (!jobs.paused && jobs.getUtils() != null) {
             jobs.xrotate = (float) (jobs.getUtils().xvel / 4.0);
             jobs.yrotate = (float) (jobs.getUtils().yvel / 4.0);
             jobs.fov     = (float)  jobs.getUtils().fov;

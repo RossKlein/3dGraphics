@@ -6,7 +6,6 @@
       "name": "Graphicsv3 (Main + build native)",
       "request": "launch",
       "mainClass": "Ross.Instance.Main",
-      "projectName": "Graphicsv3",
       "cwd": "${workspaceFolder}",
       "vmArgs": "-Djava.library.path=${workspaceFolder}/natives",
       "preLaunchTask": "build-native-windows"
@@ -16,7 +15,6 @@
       "name": "Graphicsv3 (Main, Java only)",
       "request": "launch",
       "mainClass": "Ross.Instance.Main",
-      "projectName": "Graphicsv3",
       "cwd": "${workspaceFolder}",
       "vmArgs": "-Djava.library.path=${workspaceFolder}/natives"
     }
