@@ -9,6 +9,7 @@ import Ross.Modules.models.OBJobject;
 import Ross.Modules.scene.Scene;
 import org.lwjgl.glfw.GLFW;
 import org.lwjgl.system.CallbackI;
+import Ross.Modules.scene.LayerManager;
 import Ross.Modules.scene.Utils;
 
 import java.util.ArrayList;
@@ -46,7 +47,8 @@ public class JobModule {
     volatile public float zrotate;
     volatile public Vec3f position = new Vec3f(0, 0, -30);
 
-    Scene currentScene = null;
+    Scene        currentScene  = null;
+    LayerManager layerManager = null;
 
     //test
     public Renderer renderer;
@@ -129,6 +131,40 @@ public class JobModule {
         //last thing to do
         engine.renderLoop(this);
 
+    }
+
+    /**
+     * Start the engine using the v4 Layer system.
+     *
+     * Push your initial layers via {@link Ross.Modules.scene.Scenes} before calling this:
+     * <pre>{@code
+     * LayerManager lm = new LayerManager();
+     * GameState    gs = new GameState();
+     * Scenes.loadMainMenu(lm, taskmaster);
+     * taskmaster.start(lm);
+     * }</pre>
+     */
+    public void start(LayerManager lm) {
+        this.layerManager = lm;
+
+        window.create(0);
+        inputHandler.registerInputHandler(window.getWindowId());
+        inputHandler.setCursorPos(0, 0);
+        renderer = new Renderer();
+        utils.setInputHandler(inputHandler);
+        utils.fov = 70;
+
+        this.pool = engine.getPool(N_THREADS);
+        Thread updateThread = new Thread(engine.updateLoop(this));
+        updateThread.setName("updateThread");
+        updateThread.setDaemon(true);
+
+        engine.run = true;
+        updateThread.start();
+
+        window.setVisible(true);
+
+        engine.renderLoop(this);
     }
 
 
@@ -231,9 +267,12 @@ public class JobModule {
         updateQueue.assign(controls);
         updateQueue.assign(matrixWork);
 
-
-        for (Job getjob : currentScene.update(this)) {
-            updateQueue.assign(getjob);
+        if (layerManager != null) {
+            for (Job job : layerManager.collectUpdateJobs(this))
+                updateQueue.assign(job);
+        } else if (currentScene != null) {
+            for (Job job : currentScene.update(this))
+                updateQueue.assign(job);
         }
         //first add all tasks to queue, then execute framecall
 
@@ -286,8 +325,12 @@ public class JobModule {
 
 
 
-        for (Job getjob : currentScene.render(this, deltaTime)) {
-            renderQueue.assign(getjob);
+        if (layerManager != null) {
+            for (Job job : layerManager.renderFrame(this, deltaTime))
+                renderQueue.assign(job);
+        } else if (currentScene != null) {
+            for (Job job : currentScene.render(this, deltaTime))
+                renderQueue.assign(job);
         }
         LinkedList<Job> queue = renderQueue.frameCall();
         AtomicInteger jobsInFlight = new AtomicInteger(queue.size());
