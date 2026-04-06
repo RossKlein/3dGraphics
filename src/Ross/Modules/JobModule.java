@@ -153,6 +153,7 @@ public class JobModule {
         renderer = new Renderer();
         utils.setInputHandler(inputHandler);
         utils.fov = 70;
+        fov = 70;  // default so matrixWork projection is valid from frame 1
 
         this.pool = engine.getPool(N_THREADS);
         Thread updateThread = new Thread(engine.updateLoop(this));
