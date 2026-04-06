@@ -32,7 +32,7 @@ target_include_directories(rmlui_java PRIVATE
     include/
 )
 
-target_link_libraries(rmlui_java PRIVATE RmlCore)
+target_link_libraries(rmlui_java PRIVATE rmlui_core)
 
 # Windows needs explicit JNI libs; Linux/macOS resolve them at runtime
 if(WIN32)
