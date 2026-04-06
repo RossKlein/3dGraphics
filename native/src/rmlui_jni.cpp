@@ -3,7 +3,12 @@
 #include "rmlui_java.h"
 #include "HeapRenderInterface.h"
 #include "DefaultSystemInterface.h"
+#include "JavaEventListener.h"
 #include <cstring>
+#include <deque>
+#include <unordered_map>
+#include <vector>
+#include <string>
 
 // JNI function naming: Java class is Ross.Modules.ui.RmlUi
 // → Java_Ross_Modules_ui_RmlUi_<methodName>
@@ -17,10 +22,58 @@ static DefaultSystemInterface* g_systemInterface = nullptr;
 static HeapRenderInterface*    g_renderInterface = nullptr;
 static Rml::Context*           g_context         = nullptr;
 
-// Capture the JavaVM on library load — needed for GenerateTexture callback.
+// Capture the JavaVM on library load — needed for GenerateTexture and event callbacks.
 JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM* vm, void* /*reserved*/) {
     g_vm = vm;
     return JNI_VERSION_1_8;
+}
+
+// ---------------------------------------------------------------------------
+// Event callback (UI → Game)
+// ---------------------------------------------------------------------------
+
+static jobject    g_eventCallback       = nullptr; // global ref to Java RmlEventListener
+static jmethodID  g_eventCallbackMethod = nullptr;
+
+// ---------------------------------------------------------------------------
+// Data models (Game → UI)
+// ---------------------------------------------------------------------------
+
+// ModelVar holds one bound variable. Uses double for all numeric types to
+// avoid separate float/int storage; Java helpers cast as needed.
+struct ModelVar {
+    double      number = 0.0;
+    std::string text;
+    bool        isText = false;
+};
+
+struct DataModelState {
+    Rml::DataModelHandle handle;
+    // std::deque provides stable element addresses across push_back — safe for
+    // BindFunc lambdas that capture ModelVar* pointers.
+    std::deque<ModelVar>                       storage;
+    std::unordered_map<std::string, ModelVar*> index;
+};
+
+static std::unordered_map<std::string, DataModelState> g_dataModels;
+
+// ---------------------------------------------------------------------------
+// JNI helpers
+// ---------------------------------------------------------------------------
+
+static std::vector<std::string> jStringArrayToVec(JNIEnv* env, jobjectArray arr) {
+    std::vector<std::string> result;
+    if (!arr) return result;
+    jsize len = env->GetArrayLength(arr);
+    result.reserve(len);
+    for (jsize i = 0; i < len; i++) {
+        auto js = static_cast<jstring>(env->GetObjectArrayElement(arr, i));
+        const char* s = env->GetStringUTFChars(js, nullptr);
+        result.emplace_back(s);
+        env->ReleaseStringUTFChars(js, s);
+        env->DeleteLocalRef(js);
+    }
+    return result;
 }
 
 // ---------------------------------------------------------------------------
@@ -29,7 +82,7 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM* vm, void* /*reserved*/) {
 
 extern "C" JNIEXPORT void JNICALL
 Java_Ross_Modules_ui_RmlUi_nInit(
-    JNIEnv* env, jobject /*self*/,
+    JNIEnv* env, jobject self,
     jint width, jint height,
     jobject jCommandBuf,
     jobject jGeomBuf,
@@ -63,8 +116,11 @@ Java_Ross_Modules_ui_RmlUi_nInit(
 }
 
 extern "C" JNIEXPORT void JNICALL
-Java_Ross_Modules_ui_RmlUi_nShutdown(JNIEnv* /*env*/, jobject /*self*/)
+Java_Ross_Modules_ui_RmlUi_nShutdown(JNIEnv* env, jobject /*self*/)
 {
+    // Data models must be destroyed before Rml::Shutdown().
+    g_dataModels.clear();
+
     if (g_context) {
         Rml::RemoveContext("main");
         g_context = nullptr;
@@ -72,6 +128,12 @@ Java_Ross_Modules_ui_RmlUi_nShutdown(JNIEnv* /*env*/, jobject /*self*/)
     Rml::Shutdown();
     delete g_renderInterface; g_renderInterface = nullptr;
     delete g_systemInterface; g_systemInterface = nullptr;
+
+    if (g_eventCallback) {
+        env->DeleteGlobalRef(g_eventCallback);
+        g_eventCallback       = nullptr;
+        g_eventCallbackMethod = nullptr;
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -238,4 +300,156 @@ Java_Ross_Modules_ui_RmlUi_nRegisterTexture(
         std::string(path),
         static_cast<Rml::TextureHandle>(glTextureId));
     env->ReleaseStringUTFChars(jPath, path);
+}
+
+// ---------------------------------------------------------------------------
+// Event callbacks (UI → Game)
+//
+// Usage pattern:
+//   rmlUi.setEventCallback((elemId, eventType, value) -> { ... });
+//   long doc = rmlUi.loadDocument("menu.rml");
+//   rmlUi.addEventListener(doc, "start-button", "click");
+//   rmlUi.addEventListener(doc, "volume-slider", "change");
+// ---------------------------------------------------------------------------
+
+extern "C" JNIEXPORT void JNICALL
+Java_Ross_Modules_ui_RmlUi_nSetEventCallback(
+    JNIEnv* env, jobject /*self*/, jobject jListener)
+{
+    // Delete previous global ref if any.
+    if (g_eventCallback) {
+        env->DeleteGlobalRef(g_eventCallback);
+        g_eventCallback       = nullptr;
+        g_eventCallbackMethod = nullptr;
+    }
+    if (!jListener) return;
+
+    g_eventCallback = env->NewGlobalRef(jListener);
+    jclass cls = env->GetObjectClass(jListener);
+    g_eventCallbackMethod = env->GetMethodID(cls, "onEvent",
+        "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V");
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_Ross_Modules_ui_RmlUi_nAddEventListener(
+    JNIEnv* env, jobject /*self*/,
+    jlong docHandle, jstring jElemId, jstring jEventType)
+{
+    if (!g_eventCallback || !g_eventCallbackMethod) return;
+    auto* doc = reinterpret_cast<Rml::ElementDocument*>(docHandle);
+    if (!doc) return;
+
+    const char* elemId    = env->GetStringUTFChars(jElemId, nullptr);
+    const char* eventType = env->GetStringUTFChars(jEventType, nullptr);
+
+    Rml::Element* elem = doc->GetElementById(elemId);
+    if (elem) {
+        // JavaEventListener deletes itself in OnDetach — RmlUi manages lifetime.
+        auto* listener = new JavaEventListener(
+            g_vm, g_eventCallback, g_eventCallbackMethod, elemId);
+        elem->AddEventListener(eventType, listener);
+    }
+
+    env->ReleaseStringUTFChars(jElemId, elemId);
+    env->ReleaseStringUTFChars(jEventType, eventType);
+}
+
+// ---------------------------------------------------------------------------
+// Data models (Game → UI)
+//
+// Usage pattern:
+//   rmlUi.createDataModel("hud",
+//       new String[]{"speed", "altitude", "timeOfDay"},   // float vars
+//       new String[]{"biome", "statusText"});              // string vars
+//
+//   // Each update frame:
+//   rmlUi.setModelFloat("hud", "speed",    bird.getSpeed());
+//   rmlUi.setModelFloat("hud", "altitude", bird.getAltitude());
+//   rmlUi.setModelString("hud", "biome",   world.getCurrentBiome());
+//
+//   // .rml template uses: <span>{{speed}} m/s</span>
+// ---------------------------------------------------------------------------
+
+extern "C" JNIEXPORT void JNICALL
+Java_Ross_Modules_ui_RmlUi_nCreateDataModel(
+    JNIEnv* env, jobject /*self*/,
+    jstring jModelName, jobjectArray jFloatVars, jobjectArray jStringVars)
+{
+    if (!g_context) return;
+
+    const char* modelName = env->GetStringUTFChars(jModelName, nullptr);
+    std::string name(modelName);
+    env->ReleaseStringUTFChars(jModelName, modelName);
+
+    auto floatVarNames  = jStringArrayToVec(env, jFloatVars);
+    auto stringVarNames = jStringArrayToVec(env, jStringVars);
+
+    // Erase any previous model with this name.
+    g_dataModels.erase(name);
+    DataModelState& state = g_dataModels[name];
+
+    Rml::DataModelConstructor ctor = g_context->CreateDataModel(name);
+    if (!ctor) return;
+
+    for (const auto& varName : floatVarNames) {
+        state.storage.push_back(ModelVar{});
+        ModelVar* var = &state.storage.back();
+        state.index[varName] = var;
+        ctor.BindFunc(varName,
+            [var](Rml::Variant& out)        { out = var->number; },
+            [var](const Rml::Variant& in)   { var->number = in.Get<double>(); });
+    }
+
+    for (const auto& varName : stringVarNames) {
+        state.storage.push_back(ModelVar{ .isText = true });
+        ModelVar* var = &state.storage.back();
+        state.index[varName] = var;
+        ctor.BindFunc(varName,
+            [var](Rml::Variant& out)        { out = var->text; },
+            [var](const Rml::Variant& in)   { var->text = in.Get<Rml::String>(); });
+    }
+
+    state.handle = ctor.GetModelHandle();
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_Ross_Modules_ui_RmlUi_nSetModelFloat(
+    JNIEnv* env, jobject /*self*/, jstring jModel, jstring jVar, jfloat value)
+{
+    const char* model = env->GetStringUTFChars(jModel, nullptr);
+    const char* var   = env->GetStringUTFChars(jVar,   nullptr);
+
+    auto mit = g_dataModels.find(model);
+    if (mit != g_dataModels.end()) {
+        auto vit = mit->second.index.find(var);
+        if (vit != mit->second.index.end()) {
+            vit->second->number = static_cast<double>(value);
+            mit->second.handle.DirtyVariable(var);
+        }
+    }
+
+    env->ReleaseStringUTFChars(jModel, model);
+    env->ReleaseStringUTFChars(jVar,   var);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_Ross_Modules_ui_RmlUi_nSetModelString(
+    JNIEnv* env, jobject /*self*/, jstring jModel, jstring jVar, jstring jValue)
+{
+    const char* model = env->GetStringUTFChars(jModel, nullptr);
+    const char* var   = env->GetStringUTFChars(jVar,   nullptr);
+    const char* value = env->GetStringUTFChars(jValue, nullptr);
+
+    auto mit = g_dataModels.find(model);
+    if (mit != g_dataModels.end()) {
+        auto vit = mit->second.index.find(var);
+        if (vit != mit->second.index.end()) {
+            vit->second->text = value;
+            mit->second.handle.DirtyVariable(var);
+        }
+    }
+
+    env->ReleaseStringUTFChars(jModel, model);
+    env->ReleaseStringUTFChars(jVar,   var);
+    env->ReleaseStringUTFChars(jValue, value);
 }

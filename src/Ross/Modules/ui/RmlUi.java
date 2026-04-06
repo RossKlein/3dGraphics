@@ -115,6 +115,86 @@ public class RmlUi {
 
     public void shutdown() { nShutdown(); }
 
+    // ---- Event callbacks (UI → Game) ---------------------------------------
+
+    /**
+     * Set the single callback that receives all UI events.
+     * Must be called before any {@link #addEventListener} calls.
+     *
+     * <pre>{@code
+     * rmlUi.setEventCallback((elemId, eventType, value) -> {
+     *     if (elemId.equals("start-btn") && eventType.equals("click"))
+     *         startGame();
+     * });
+     * }</pre>
+     *
+     * Pass {@code null} to clear a previously set callback.
+     */
+    public void setEventCallback(RmlEventListener listener) {
+        nSetEventCallback(listener);
+    }
+
+    /**
+     * Attach an event listener to a specific element inside a document.
+     * The callback set via {@link #setEventCallback} will be invoked when
+     * the event fires.
+     *
+     * @param documentHandle  handle returned by {@link #loadDocument}
+     * @param elementId       value of the id="" attribute in the .rml file
+     * @param eventType       RmlUi event string: "click", "change", "submit", …
+     */
+    public void addEventListener(long documentHandle, String elementId, String eventType) {
+        nAddEventListener(documentHandle, elementId, eventType);
+    }
+
+    // ---- Data models (Game → UI) -------------------------------------------
+
+    /**
+     * Declare a named data model and register its variables with RmlUi.
+     * Call once after the context is initialised but before loading documents.
+     *
+     * In your .rml template use {@code data-model="modelName"} on the root
+     * element, then reference variables with double-braces:
+     * <pre>{@code
+     * <div data-model="hud">
+     *   <span>{{speed}} m/s  alt {{altitude}} m</span>
+     *   <span>{{biome}}</span>
+     * </div>
+     * }</pre>
+     *
+     * Then each update frame push new values:
+     * <pre>{@code
+     * rmlUi.setModelFloat("hud", "speed",    bird.getSpeed());
+     * rmlUi.setModelFloat("hud", "altitude", bird.getAltitude());
+     * rmlUi.setModelString("hud", "biome",   world.getCurrentBiome());
+     * }</pre>
+     *
+     * @param modelName   name matching data-model="…" in the .rml file
+     * @param floatVars   variable names bound as numeric (float/double) values
+     * @param stringVars  variable names bound as text values
+     */
+    public void createDataModel(String modelName, String[] floatVars, String[] stringVars) {
+        nCreateDataModel(modelName, floatVars, stringVars);
+    }
+
+    /**
+     * Update a numeric variable in a data model and mark it dirty.
+     * RmlUi will re-render any template expressions referencing this variable
+     * on the next {@link #update()} call.
+     */
+    public void setModelFloat(String modelName, String varName, float value) {
+        nSetModelFloat(modelName, varName, value);
+    }
+
+    /**
+     * Update a string variable in a data model and mark it dirty.
+     * RmlUi will re-render any template expressions referencing this variable
+     * on the next {@link #update()} call.
+     */
+    public void setModelString(String modelName, String varName, String value) {
+        nSetModelString(modelName, varName, value);
+    }
+
     // ---- Textures ----------------------------------------------------------
 
     /**
@@ -464,4 +544,13 @@ public class RmlUi {
     private native void    nKeyUp(int rmlKey, int mods);
     private native void    nTextInput(int codepoint);
     private native void    nRegisterTexture(String path, int glTextureId);
+
+    // Event callbacks
+    private native void    nSetEventCallback(RmlEventListener listener);
+    private native void    nAddEventListener(long docHandle, String elementId, String eventType);
+
+    // Data models
+    private native void    nCreateDataModel(String modelName, String[] floatVars, String[] stringVars);
+    private native void    nSetModelFloat(String modelName, String varName, float value);
+    private native void    nSetModelString(String modelName, String varName, String value);
 }

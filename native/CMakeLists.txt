@@ -23,6 +23,7 @@ add_library(rmlui_java SHARED
     src/rmlui_jni.cpp
     src/HeapRenderInterface.cpp
     src/DefaultSystemInterface.cpp
+    src/JavaEventListener.cpp
 )
 
 target_include_directories(rmlui_java PRIVATE
