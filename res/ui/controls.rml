@@ -1,0 +1,100 @@
+<rml>
+<head>
+    <title>Controls</title>
+    <style>
+        body {
+            font-family: Roboto;
+            font-size: 14px;
+            color: #ffffff;
+        }
+
+        /* ---- Controls panel (top-left) ---- */
+        #controls-panel {
+            position: absolute;
+            top: 14px;
+            left: 14px;
+            background-color: rgba(0, 0, 0, 0.55);
+            padding: 10px 14px 12px 14px;
+            border-radius: 6px;
+        }
+
+        #controls-panel .title {
+            font-size: 12px;
+            color: #888888;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+
+        .row {
+            display: flex;
+            margin-bottom: 4px;
+        }
+
+        .key {
+            color: #ffcc44;
+            font-size: 13px;
+            width: 130px;
+            min-width: 130px;
+        }
+
+        .desc {
+            color: #cccccc;
+            font-size: 13px;
+        }
+
+        .separator {
+            height: 1px;
+            background-color: rgba(255, 255, 255, 0.12);
+            margin: 6px 0;
+        }
+
+        /* ---- Live info panel (bottom-right) ---- */
+        #live-panel {
+            position: absolute;
+            bottom: 14px;
+            right: 14px;
+            background-color: rgba(0, 0, 0, 0.55);
+            padding: 10px 14px;
+            border-radius: 6px;
+            text-align: right;
+        }
+
+        #live-panel .stat {
+            font-size: 13px;
+            color: #aaaaaa;
+            margin-bottom: 3px;
+        }
+
+        #live-panel .stat span {
+            color: #ffffff;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Static controls reference -->
+    <div id="controls-panel">
+        <p class="title">CONTROLS</p>
+
+        <div class="row"><span class="key">W / A / S / D</span><span class="desc">Move</span></div>
+        <div class="row"><span class="key">Q / E</span>        <span class="desc">Down / Up</span></div>
+        <div class="row"><span class="key">Mouse</span>        <span class="desc">Rotate camera</span></div>
+        <div class="row"><span class="key">Ctrl + Mouse</span> <span class="desc">Slow rotate</span></div>
+        <div class="row"><span class="key">Scroll</span>       <span class="desc">Zoom (FOV)</span></div>
+
+        <div class="separator"/>
+
+        <div class="row"><span class="key">Enter</span>        <span class="desc">Capture profiler</span></div>
+        <div class="row"><span class="key">Backspace</span>    <span class="desc">Reset profiler</span></div>
+    </div>
+
+    <!-- Live camera data, bound to "camera" data model -->
+    <div id="live-panel" data-model="camera">
+        <p class="stat">FOV  <span>{{fov}}</span></p>
+        <p class="stat">X    <span>{{posX}}</span></p>
+        <p class="stat">Y    <span>{{posY}}</span></p>
+        <p class="stat">Z    <span>{{posZ}}</span></p>
+    </div>
+
+</body>
+</rml>

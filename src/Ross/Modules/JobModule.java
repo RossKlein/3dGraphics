@@ -367,6 +367,10 @@ public class JobModule {
 
 
 
+    public Utils getUtils() {
+        return utils;
+    }
+
     public Window getWindow() {
         return window;
     }
