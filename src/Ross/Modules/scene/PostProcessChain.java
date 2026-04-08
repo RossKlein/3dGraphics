@@ -64,7 +64,13 @@ public class PostProcessChain {
 
     // ---- Pass management ---------------------------------------------------
 
-    public void addPass(PostProcessPass pass)    { passes.add(pass); }
+    public void addPass(PostProcessPass pass) {
+        passes.add(pass);
+        // If the chain is already running, give the pass its initial dimensions so
+        // it can size any internal FBOs correctly on its very first run() call.
+        if (initialized) pass.resize(screenWidth, screenHeight);
+    }
+
     public void removePass(PostProcessPass pass) { passes.remove(pass); }
 
     // ---- Per-frame ---------------------------------------------------------

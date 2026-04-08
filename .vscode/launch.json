@@ -7,7 +7,7 @@
       "request": "launch",
       "mainClass": "Ross.Instance.Main",
       "cwd": "${workspaceFolder}",
-      "vmArgs": "-Djava.library.path=${workspaceFolder}/natives",
+      "vmArgs": "-Djava.library.path=${workspaceFolder}/natives -Xmx1g -Xms256m -XX:+UseG1GC -XX:MaxGCPauseMillis=8",
       "preLaunchTask": "build-native-windows"
     },
     {
@@ -16,7 +16,7 @@
       "request": "launch",
       "mainClass": "Ross.Instance.Main",
       "cwd": "${workspaceFolder}",
-      "vmArgs": "-Djava.library.path=${workspaceFolder}/natives"
+      "vmArgs": "-Djava.library.path=${workspaceFolder}/natives -Xmx1g -Xms256m -XX:+UseG1GC -XX:MaxGCPauseMillis=8"
     }
   ]
 }

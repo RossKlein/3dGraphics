@@ -37,4 +37,18 @@ public class GameState {
     public volatile String currentBiome = "grasslands"; // biome tag for ambient sound / tint
     public volatile float  windStrength = 0.3f;        // 0–1, drives foliage vertex shader
     public volatile float  windAngle    = 0f;          // degrees
+
+    // ---- Sky / God rays -------------------------------------------------------
+    // Written by SkyLayer.render() each frame (GL thread).
+    // Read by GodRaysPass.run() in the same frame (also GL thread — no race).
+
+    public volatile float sunScreenX   = 0.5f;    // sun UV x in [0,1], or < 0 if below horizon
+    public volatile float sunScreenY   = 0.75f;   // sun UV y in [0,1]
+    public volatile float sunIntensity = 1.0f;    // 0 when sun below horizon, 1 at zenith
+
+    // Sun tint colour — matches the sky shader's sunCol calculation.
+    // Warm orange at dawn/dusk (1, 0.5, 0.15), pale yellow-white at noon (1, 0.97, 0.80).
+    public volatile float sunColorR = 1.0f;
+    public volatile float sunColorG = 0.97f;
+    public volatile float sunColorB = 0.80f;
 }
