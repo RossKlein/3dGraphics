@@ -5,6 +5,6 @@
   "java.project.resourcePaths": ["res"],
   "java.project.outputPath": "out/production/Graphicsv3",
   "java.project.referencedLibraries": [
-    "C:/winbin/lwjgl-opengl-new/**/*.jar"
+    "B:/bin/lwjgl-3.3.6/*.jar"
   ]
 }

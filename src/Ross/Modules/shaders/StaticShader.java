@@ -24,14 +24,6 @@ public class StaticShader extends Shader{
     @Override
     public void loadMatrix(Mat4f matrix, String name, boolean transpose) {
         super.bindUniformMatrix4fvLocation(matrix, name, transpose);
-
-
-
-    }
-
-    @Override
-    public void bindUniformBool(String name, boolean value) {
-        super.bindUniformBool(name, value);
     }
 
     @Override

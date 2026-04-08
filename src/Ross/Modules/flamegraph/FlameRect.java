@@ -31,8 +31,8 @@ public class FlameRect {
 
     public int[] getIndices(int baseIndex) {
         return new int[]{
-                baseIndex, baseIndex + 1, baseIndex + 2,
-                baseIndex, baseIndex + 2, baseIndex + 3
+                baseIndex, baseIndex + 2, baseIndex + 1,
+                baseIndex, baseIndex + 3, baseIndex + 2
         };
     }
 

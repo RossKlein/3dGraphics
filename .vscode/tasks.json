@@ -8,7 +8,7 @@
       "options": {
         "cwd": "${workspaceFolder}/native",
         "env": {
-          "VCPKG_ROOT": "${env:VCPKG_ROOT}"
+          "VCPKG_ROOT": "B:/bin/vcpkg"
         }
       },
       "problemMatcher": [],

@@ -70,16 +70,32 @@ public class DebugLayer extends BaseLayer {
     }
 
     private class InputJob extends Job {
+        private boolean wasEnterDown = false;
+
         @Override
         public void code() {
-            if (jobs.inputHandler.isKeyDown(GLFW.GLFW_KEY_ENTER)) {
-                List<JobProfiler.FlameEvent> events = JobProfiler.getFlamegraphEvents();
-                FlamegraphBuilder builder = new FlamegraphBuilder(events, Settings.width);
-                pendingRects = builder.build(events); // volatile write
+            boolean enterDown = jobs.inputHandler.isKeyDown(GLFW.GLFW_KEY_ENTER);
+
+            if (enterDown && !wasEnterDown) {
+                // Key just pressed — start the unbounded capture buffer.
+                JobProfiler.startCapture();
             }
 
+            if (enterDown) {
+                // Refresh the visual overlay from the normal ring buffer each tick.
+                List<JobProfiler.FlameEvent> ring = JobProfiler.getFlamegraphEvents();
+                FlamegraphBuilder builder = new FlamegraphBuilder(ring, Settings.width);
+                pendingRects = builder.build(ring);
+            } else if (wasEnterDown) {
+                // Key just released — stop capture and write the full buffer once.
+                List<JobProfiler.FlameEvent> full = JobProfiler.stopCapture();
+                JobProfiler.dumpToFile(full);
+            }
+
+            wasEnterDown = enterDown;
+
             if (jobs.inputHandler.isKeyDown(GLFW.GLFW_KEY_BACKSPACE)) {
-                resetPending = true; // volatile write
+                resetPending = true;
             }
         }
     }

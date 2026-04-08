@@ -6,6 +6,9 @@ import Ross.Modules.scene.LayerManager;
 
 public class Main {
 
+    /** Deterministic world seed — change this to explore different terrain. */
+    private static final long WORLD_SEED = 0xDEADBEEF_CAFEBABEL;
+
     public static void main(String[] args) {
         JobModule    taskmaster = new JobModule();
         LayerManager lm         = new LayerManager();
@@ -41,10 +44,10 @@ public class Main {
         //   0.25 = dawn, 0.5 = noon, 0.75 = dusk.  Tweak here to preview.
         state.timeOfDay = 0.45f;   // just before noon — strong sun + visible god rays
 
-        lm.push(new SkyLayer(state, lm), taskmaster);
-        lm.push(new TestWorldLayer(),    taskmaster);
-        lm.push(new ControlsHudLayer(),  taskmaster);
-        lm.push(new DebugLayer(),        taskmaster);
+        lm.push(new SkyLayer(state, lm),             taskmaster);  // WORLD order 0 — sky gradient + sun
+        lm.push(new TerrainLayer(state, WORLD_SEED), taskmaster);  // WORLD order 1 — streaming terrain
+        lm.push(new ControlsHudLayer(state),         taskmaster);  // SCREEN order 0 — key reference HUD
+        lm.push(new DebugLayer(),                    taskmaster);  // SCREEN order 99 — flamegraph
 
         taskmaster.start(lm);
     }
