@@ -1,0 +1,10 @@
+{
+  "java.configuration.updateBuildConfiguration": "automatic",
+  "java.compile.nullAnalysis.mode": "disabled",
+  "java.project.sourcePaths": ["src"],
+  "java.project.resourcePaths": ["res"],
+  "java.project.outputPath": "out/production/Graphicsv3",
+  "java.project.referencedLibraries": [
+    "B:/bin/lwjgl-3.3.6/*.jar"
+  ]
+}

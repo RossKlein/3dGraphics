@@ -17,6 +17,8 @@ import static org.lwjgl.opengl.GL11.glViewport;
 
 public class Window {
 
+    private final JobModule jobModule;
+
     private long windowId;
     private String title;
     private int x, y;
@@ -26,6 +28,7 @@ public class Window {
     private int vSync;
 
     public Window(JobModule taskModule) {
+        this.jobModule = taskModule;
         windowId = 0;
         title = "Window";
         x = -1;
@@ -207,16 +210,22 @@ public class Window {
 
         GL11.glEnable(GL11.GL_DEPTH_TEST);
         GL11.glDepthFunc(GL11.GL_LESS);
-//        GL11.glEnable(GL11.GL_CULL_FACE);
-//        GL11.glCullFace(GL11.GL_BACK);
+        GL11.glEnable(GL11.GL_CULL_FACE);
+        GL11.glCullFace(GL11.GL_BACK);
 
 
         GLFWFramebufferSizeCallback resizeCallback = new GLFWFramebufferSizeCallback() {
             @Override
             public void invoke(long window, int width, int height) {
+                if (width <= 0 || height <= 0) {
+                    return;
+                }
                 glViewport(0, 0, width, height);
                 Settings.width = width;
                 Settings.height = height;
+                Window.this.w = width;
+                Window.this.h = height;
+                jobModule.onFramebufferResized(width, height);
             }
         };
 

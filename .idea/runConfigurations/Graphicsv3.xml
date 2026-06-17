@@ -1,0 +1,10 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Graphicsv3" type="Application" factoryName="Application">
+    <option name="MAIN_CLASS_NAME" value="Ross.Instance.Main" />
+    <module name="Graphicsv3" />
+    <option name="VM_PARAMETERS" value="-Djava.library.path=$PROJECT_DIR$/natives -Xmx1g -Xms256m -XX:+UseG1GC -XX:MaxGCPauseMillis=8 -XX:G1NewSizePercent=40" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>

@@ -1,0 +1,3 @@
+[submodule "native/extern/RmlUi"]
+	path = native/extern/RmlUi
+	url = https://github.com/mikke89/RmlUi

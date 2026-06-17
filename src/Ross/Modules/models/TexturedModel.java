@@ -6,8 +6,8 @@ public class TexturedModel extends Model {
 
     private Texture texture;
 
-    TexturedModel(int vaoId, int vertexCount, Texture texture) {
-        super(vaoId, vertexCount);
+    TexturedModel(int vaoId, int vertexCount, int[] vboIds, Texture texture) {
+        super(vaoId, vertexCount, vboIds);
         this.texture = texture;
     }
 

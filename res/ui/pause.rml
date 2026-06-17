@@ -1,0 +1,53 @@
+<rml>
+<head>
+    <title>Paused</title>
+    <style>
+        body {
+            font-family: Roboto;
+            font-size: 18dp;
+            color: #ffffff;
+            width: 100%;
+            height: 100%;
+            margin: 0;
+        }
+        #overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: rgba(0, 0, 0, 0.65);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        h1 {
+            font-size: 32dp;
+            margin-bottom: 24dp;
+            color: #eeeeee;
+        }
+        #resume-btn {
+            cursor: pointer;
+            padding: 12dp 28dp;
+            background-color: #3a7a3a;
+            border-radius: 8dp;
+            color: #ffffff;
+            font-size: 18dp;
+            text-align: center;
+        }
+        #resume-btn:hover {
+            background-color: #4a9a4a;
+        }
+        .hint {
+            margin-top: 18dp;
+            font-size: 14dp;
+            color: #aaaaaa;
+        }
+    </style>
+</head>
+<body>
+    <div id="overlay">
+        <h1>Paused</h1>
+        <div id="resume-btn">Resume</div>
+        <p class="hint">Or press Esc to resume</p>
+    </div>
+</body>
+</rml>

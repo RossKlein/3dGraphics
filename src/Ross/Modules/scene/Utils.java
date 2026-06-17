@@ -13,6 +13,8 @@ public class Utils {
     public double xvel, yvel;
     public double fov;
     private InputHandler inputHandler;
+    /** When false (e.g. pause menu), scroll zoom and mouse-look deltas are ignored. */
+    private boolean gameInputEnabled = true;
 
     public Utils() {
 
@@ -21,18 +23,24 @@ public class Utils {
         xvel = yvel = 0;
     }
 
+    public void setGameInputEnabled(boolean enabled) {
+        this.gameInputEnabled = enabled;
+    }
+
     public void updateInput() {
-        ////////////// fov
-        yoff = inputHandler.getYoffset();
+        ////////////// fov (gameplay only)
+        if (gameInputEnabled) {
+            yoff = inputHandler.getYoffset();
 
-        if(yoff-oldoff == 0){
-            oldoff = 0;
-        }else{
-            oldoff = 5*yoff;
-            fov = fov - 0.1f* (float) oldoff;
+            if(yoff-oldoff == 0){
+                oldoff = 0;
+            }else{
+                oldoff = 5*yoff;
+                fov = fov - 0.1f* (float) oldoff;
+            }
+
+            oldoff = inputHandler.getYoffset();
         }
-
-        oldoff = inputHandler.getYoffset();
         ///////////////////
         //////// mouse movement
 
@@ -47,6 +55,11 @@ public class Utils {
 
         xvelold = inputHandler.getXcursor();
         yvelold = inputHandler.getYcursor();
+
+        if (!gameInputEnabled) {
+            xvel = 0;
+            yvel = 0;
+        }
 
     }
 
